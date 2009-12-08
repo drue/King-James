@@ -1,0 +1,64 @@
+A B C D
+E F G H
+
+
+A - Left
+
+B - Right
+
+C - Menu / Exit
+
+D - Light / Select
+
+E - Pause
+
+F - Stop
+
+G - Play
+
+H - Record
+
+
+ --------------------
+|Ready...            |
+|                    |
+|                    |
+|                    |
+ --------------------
+
+
+main screen:
+ --------------------
+|REC   24/88 00:29:57|
+|20:44   REM 00:13:00|
+|L#########        03|
+|R#########        04|
+ --------------------
+ - meters on bottom with margin indicators
+
+
+main menu
+ --------------------
+| Recording Setup    |
+|*System Parameters *| - "*" is current selection
+| File Tools         |
+|                    |
+ --------------------
+
+recording setup
+
+ --------------------
+| Sampl. Rate: 88.2  |
+|*Word Size:   24   *|
+| Format:      coax  |
+| Timer:       off  >|   - ">" means there are more menu choices below
+ --------------------
+ --------------------
+|<Format:      coax  | - "<" means there are more menu choices above
+| Timer:       off   |
+| Compression: flac  |
+| Matrix:      off   |
+ --------------------
+
+
+system parameters
