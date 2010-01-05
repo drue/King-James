@@ -15,7 +15,7 @@
 #include <sys/stat.h>
 
 #include <fcntl.h>
-#include <FLAC/all.h>
+#include <FLAC/stream_encoder.h>
 #define NUM_PERIODS 8
 #define DISK_BUFFER_SIZE BLOCK_SIZE * 64
 
@@ -75,7 +75,7 @@ AlsaTPort::~AlsaTPort() {
 
 void AlsaTPort::startRecording(char *path) {
     FLAC__StreamEncoderState err;
-
+    FLAC__StreamEncoderInitStatus initted;
     
     stop_flag = 0;
     tstop = 0;
@@ -105,13 +105,10 @@ void AlsaTPort::startRecording(char *path) {
     FLAC__stream_encoder_set_min_residual_partition_order(encoder, 3);
     FLAC__stream_encoder_set_max_residual_partition_order(encoder, 3);
 
-    FLAC__stream_encoder_set_client_data(encoder, this);
-    FLAC__stream_encoder_set_write_callback(encoder, write_callback);
-    FLAC__stream_encoder_set_metadata_callback(encoder, metadata_callback);
+    initted = FLAC__stream_encoder_init_stream(encoder, write_callback, NULL, NULL, metadata_callback, this);
 
-    err = FLAC__stream_encoder_init(encoder);
 #ifdef DEBUG
-    printf("err = %d, %s\n", err, *FLAC__StreamEncoderStateString);
+    printf("initted = %d, %s\n", initted, *FLAC__StreamEncoderStateString);
     printf("FLAC:  %d ch : %d bps : %d sr\n", FLAC__stream_encoder_get_channels(encoder), FLAC__stream_encoder_get_bits_per_sample(encoder), FLAC__stream_encoder_get_sample_rate(encoder));
 #endif
 
