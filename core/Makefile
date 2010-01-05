@@ -2,7 +2,7 @@ OBJS =  memq.o port.o Transport.o core.o
 CC = g++
 CPPFLAGS =-O2 -pipe -g -Wall -D_LARGEFILE64_SOURCE -DDEBUG
 CFLAGS = -O2 -pipe -g -Wall -D_LARGEFILE64_SOURCE -DDEBUG
-LDFLAGS = -lasound -pg -lFLAC -lpython2.4 -lpthread -g
+LDFLAGS = -lasound -pg -lFLAC -lpython2.5 -lpthread -g
 DEBUG=1
 
 
