@@ -3,7 +3,7 @@
  *  
  *
  *  Created by burris on Mon Oct 01 2001.
- *  Copyright (c) 2002 Andrew Loewenstern. All rights reserved.
+ *  Copyright (c) 2001-2010 Andrew Loewenstern. All rights reserved.
  *
  */
 
