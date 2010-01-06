@@ -16,7 +16,7 @@ def timeleft(ws=24, sr=96000, path='/home/drue/trax'):
     minutekb = (sr * (ws / 8) * 2 * 60 / 1024) / (1 / const.COMP_FACTOR)
     if time.time() - last > 10:
         x = os.statvfs(path)
-	kb = x[statvfs.F_BFREE] * x[statvfs.F_BSIZE] / 1024
+	kb = (x[statvfs.F_BFREE] * x[statvfs.F_FRSIZE]) / 1024
 	hours = kb / hourkb
 	minutes = (kb - (int(hours) * hourkb)) / minutekb
 	last = time.time()
