@@ -10,7 +10,7 @@ import const
 import lcd
 import menus
 
-class Driver:
+class Driver(object):
     def __init__(self):
 	self.lr = open("/dev/ttyS0", "r")
 	self.lw = open("/dev/ttyS0", "w")
@@ -83,6 +83,7 @@ if __name__ == "__main__":
         const.DEBUG = 1
         d = DummyDriver()
         d.main_event_loop()
+    """
     else:
         import transport
         # command line recording: core <bps> <sr> <file name> <secs>
@@ -100,3 +101,4 @@ if __name__ == "__main__":
         t.stop()
         t.waitTillFinished()
         print "Done!"
+    """

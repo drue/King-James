@@ -2,7 +2,7 @@ import time
 import os
 import string
 import tools
-import config
+from config import config
 
 try:
     import transport
@@ -14,7 +14,7 @@ from const import *
 
 # state classes for UI
 
-class BaseState:
+class BaseState(object):
     _lt = ''
     def __init__(self):
 	pass
@@ -47,7 +47,7 @@ class BaseState:
 
     def showTime(self):
 	t = time.localtime()
-        x = '%02d:%02d   REM %s' % (t[3], t[4], tools.timeleft(sr=config.sr, ws=config.ws))
+        x = '%02d:%02d   REM %s' % (t[3], t[4], tools.timeleft(sr=config.getint("Recording","sr"), ws=config.getint("Recording", "ws")))
         if x != self._lt:
             self._lt = x
             self.screen.setInsert(TIME)

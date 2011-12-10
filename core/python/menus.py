@@ -1,6 +1,8 @@
 from state import *
 from math import log
 import sys
+from config import config, save
+
 
 class StoppedState(BaseState):
     def __init__(self):
@@ -24,14 +26,14 @@ class StoppedState(BaseState):
 	s = sender.screen
 	s.clear()
 
-        sr = `config.sr`[:2]
-        ws = config.ws
+        sr = `config.getint("Recording", "sr")`[:2]
+        ws = config.getint("Recording", "ws")
 
 	s.setInsert(STATUS)
 	s.write('STOP  %s/%s 00:00:00' % (ws,sr))
 	s.setInsert(TIME)
 	t = time.localtime()
-	s.write('%02d:%02d   REM %s' % (t[3], t[4], tools.timeleft(sr=config.sr, ws=config.ws)))
+	s.write('%02d:%02d   REM %s' % (t[3], t[4], tools.timeleft(sr=config.getint("Recording", 'sr'), ws=config.getint("Recording", 'ws'), channels=config.getint("Recording", "channels") )))
 
     def pulse(self, sender):
         self.showTime()
@@ -45,7 +47,7 @@ class RecordingState(BaseState):
 	BaseState.__init__(self)
 	self.stop_state = stop_state
         self.flash = 0
-        self.t = transport.newTPort(config.ws, config.sr)
+        self.t = transport.Transport(config.getint("Recording", 'sr'), config.getint("Recording", 'ws'), config.getint("Recording", "channels"))
 
     def handle_stop(self, sender):
 	self.t.stop()
@@ -73,7 +75,7 @@ class RecordingState(BaseState):
                                             `self.cur_sr`[:2]) + tools.format_seconds(time.time() - self.rec_started))
 	self.screen.setInsert(TIME)
 	t = time.localtime()
-	self.screen.write('%02d:%02d   REM %s' % (t[3], t[4], tools.timeleft(sr=self.cur_sr, ws=self.cur_ws)))
+	self.screen.write('%02d:%02d   REM %s' % (t[3], t[4], tools.timeleft(sr=self.cur_sr, ws=self.cur_ws, channels=self.t.channels)))
         self.drawPeaks()
         
     def drawPeaks(self):
@@ -125,8 +127,8 @@ class RecordingState(BaseState):
         
     def startRecording(self, sender):
 	sender.rec_started = self.rec_started = time.time()
-        self.cur_ws = config.ws
-        self.cur_sr = config.sr
+        self.cur_ws = config.getint("Recording", 'ws')
+        self.cur_sr = config.getint("Recording", 'sr')
 	filename = os.path.join(STORAGE, "%4d-%02d-%02d_%02d-%02d-%02d.flac" % time.localtime()[:6])
 	self.t.startRecording(filename)
 
@@ -256,11 +258,11 @@ class SampleRateMenu(MenuState):
                       DummyMenu("88200"),
                       DummyMenu("96000")]
     def item_str(self):
-        return "Sample Rate: %s" % config.sr
+        return "Sample Rate: %s" % config.getint("Recording", 'sr')
     
     def handle_enter(self, sender):
-        config.sr = int(self.items[self.selected].item_str())
-        config.save()
+        config.set("Recording", "sr", self.items[self.selected].item_str())
+        save()
         sender.state = self.last_state
         sender.state.entered_state(sender)
 
@@ -271,11 +273,11 @@ class WordLengthMenu(MenuState):
 		      DummyMenu("24")]
 
     def item_str(self):
-        return "Word Length: %s" % config.ws
+        return "Word Length: %s" % config.getint("Recording", 'ws')
     
     def handle_enter(self, sender):
-        config.ws = int(self.items[self.selected].item_str())
-        config.save()
+        config.set("Recording", "ws", self.items[self.selected].item_str())
+        save()
         sender.state = self.last_state
         sender.state.entered_state(sender)
 

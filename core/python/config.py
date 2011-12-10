@@ -1,27 +1,20 @@
 import const
-import bencode
+import os
+import ConfigParser
 
-sr = 96000
-ws = 24
-
+config = ConfigParser.ConfigParser()
 
 def save():
-    d = {}
-    d['sr'] = sr
-    d['ws'] = ws
-    
-    f = open(const.CONFIG_FILE, 'w')
-    f.write(bencode.bencode(d))
-    f.close()
+    configfile = open(const.CONFIG_FILE, 'wb')
+    config.write(configfile)
 
-try:
-    f = open(const.CONFIG_FILE, 'r')
-except IOError:
-    pass
+if not os.path.exists(const.CONFIG_FILE):
+    config.add_section("Recording")
+    config.set("Recording", "sr", '96000')
+    config.set("Recording", "ws", '24')
+    config.set("Recording", "type", const.STEREO)
+    config.set("Recording", "channels", '2')
+    save()
+
 else:
-    d = bencode.bdecode(f.read())
-    f.close()
-    
-    sr = d['sr']
-    ws = d['ws']
-
+    config.read(const.CONFIG_FILE)

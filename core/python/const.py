@@ -8,12 +8,12 @@ KEYMAP = {'A': 'left',
           'D' : 'enter',
           'F' : 'stop',
           'G' : 'pause',
-          'H' : 'play',          
+          'H' : 'play',
           'I' : 'rec', }
 
-STORAGE = '/home/drue/trax'
+STORAGE = '/a'
 
-CONFIG_FILE = '/home/drue/.jamesconf'
+CONFIG_FILE = '/Users/drue/.jamesconf'
 
 COMP_FACTOR = 0.60
 
@@ -29,3 +29,9 @@ TIME = (1, 2)
 
 PEAKL = (19, 3)
 PEAKR = (19, 4)
+
+
+### recording type
+STEREO = 'STEREO'
+DUAL = 'DUAL'
+BFORMAT = 'BFORMAT'
