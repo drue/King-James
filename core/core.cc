@@ -4,7 +4,7 @@
 #include <sys/mman.h>
 #include <termios.h>
 
-#include <python2.5/Python.h>
+#include <python2.7/Python.h>
 
 extern "C" {
 extern void inittransport();
