@@ -8,10 +8,10 @@
 QItem::QItem (unsigned int msize)
 {
   orig_buf = (unsigned char *)malloc(msize + BLOCK_SIZE);
-  if((unsigned int)orig_buf % BLOCK_SIZE == 0)
+  if((size_t)orig_buf % BLOCK_SIZE == 0)
 	buf = orig_buf;
   else
-	buf = (orig_buf + BLOCK_SIZE) - ((unsigned int)orig_buf % BLOCK_SIZE);
+	buf = (orig_buf + BLOCK_SIZE) - ((size_t)orig_buf % BLOCK_SIZE);
   next = NULL;
   size = 0;
   maxsize = msize;

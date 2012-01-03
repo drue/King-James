@@ -276,7 +276,7 @@ void AlsaTPort::wait()
     sem_wait(&finished_sem);
 }
 
-FLAC__StreamEncoderWriteStatus AlsaTPort::write_callback(const FLAC__StreamEncoder *encoder, const FLAC__byte buffer[], unsigned bytes, unsigned samples, unsigned current_frame, void *client_data)
+FLAC__StreamEncoderWriteStatus AlsaTPort::write_callback(const FLAC__StreamEncoder *encoder, const FLAC__byte buffer[], size_t bytes, unsigned samples, unsigned current_frame, void *client_data)
 {
   int x = 0;
   unsigned int extras;

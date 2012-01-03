@@ -37,7 +37,10 @@ protected:
     static void doCapture(void *foo);
     void doReturn();
     static void doSave(void *foo);
-    static FLAC__StreamEncoderWriteStatus write_callback(const FLAC__StreamEncoder *encoder, const FLAC__byte buffer[], unsigned bytes, unsigned samples, unsigned current_frame, void *client_data);
+    static FLAC__StreamEncoderWriteStatus write_callback(const FLAC__StreamEncoder *encoder, 
+                                                         const FLAC__byte buffer[],
+                                                         size_t bytes, unsigned samples,
+                                                         unsigned current_frame, void *client_data);
     static void metadata_callback(const FLAC__StreamEncoder *encoder, const FLAC__StreamMetadata *metadata, void *client_data);
 
 public:
