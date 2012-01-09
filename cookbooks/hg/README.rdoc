@@ -1,0 +1,3 @@
+= DESCRIPTION:
+
+hg is a cookbook to allow for the installation of Mercurial version control system and provide resources that allow interaction with hg repositories.

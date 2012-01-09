@@ -1,0 +1,7 @@
+This software provides a web interface to an audio recorder.  The main
+use case is concert recording on a portable Linux SBC such as a
+RaspberryPi or BeagleBone and controlled by the users phone over wifi.
+
+In addition to a double-buffered direct to FLAC recorder tuned for
+low power embedded processors and a web interface, the package
+includes Chef recipes for setting up and testing the complete system.
