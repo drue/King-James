@@ -9,5 +9,5 @@ features:
  * reliable, direct to FLAC recording
  * generous pre-roll buffer
  * gapless stop and re-record
+ * HTML/Javascript interface that works on iOS or Android
  * good level meters with peak hold
-
