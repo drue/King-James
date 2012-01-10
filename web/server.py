@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+
 import json
 from time import time
 
 import math
+import os
 
 import zmq
 from zmq.eventloop import ioloop, zmqstream
@@ -20,10 +23,6 @@ class IndexHandler(RequestHandler):
     def get(self):
         self.render('index.html')
 
-class SocketIOHandler(RequestHandler):
-    def get(self):
-        self.render('socket.io.js')
-        
 
 class Peaks(SocketConnection):
     def on_open(self, info):
@@ -63,10 +62,10 @@ class RouterConnection(SocketConnection):
 
 SockRouter = TornadioRouter(RouterConnection)
 
-application = Application(
-    SockRouter.apply_routes([(r"/", IndexHandler),
-                           (r"/socket.io.js", SocketIOHandler)]),
-                           socket_io_port = 8000)
+application = Application(SockRouter.apply_routes([(r"/", IndexHandler)]),
+                           socket_io_port = 8000,
+                           static_path = os.path.join(os.path.dirname(__file__), "static")
+                           )
 
 
 def zmq_producer(): 
@@ -76,10 +75,9 @@ def zmq_producer():
     il = ioloop.IOLoop.instance()
 
     def doIt():
-        x = time() 
-        y = 2.5 * (1 + math.sin(x / 500)) 
-        socket.send(json.dumps(dict(x=x, y=y))) 
-        il.add_timeout(x + 0.25, doIt)
+        r = l = 20 * math.log((1 + math.sin(time() * 7)) / 2)
+        socket.send(json.dumps([l, r])) 
+        il.add_timeout(time() + 0.1, doIt)
  
     doIt()
 

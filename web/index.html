@@ -2,21 +2,20 @@
 <html>
 <head>
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
-  <script src="socket.io.js"></script>
+ <script src="/static/socket.io.js"></script>
+ <script src="/static/vu.js"></script>
   <script>
     $(function() {
         var sock = new io.connect('http://' + window.location.host),
-            chat = new io.connect('http://' + window.location.host + '/peaks'),
+            peaks = new io.connect('http://' + window.location.host + '/peaks'),
             ping = new io.connect('http://' + window.location.host + '/status');
 
-        // Establish event handlers
-        sock.on('disconnect', function() {
-            sock.socket.reconnect();
-        });
-
-        chat.on('message', function(data) {
-            $("#chat").append("<div>" + data + "</div>");
-        });
+      peaks.on('message', function(data) {
+      var d = $.parseJSON(data[0]);
+lightVU(d);
+$('#maxL').html(maxL);
+$('#maxR').html(maxR);
+       });
 
 
         function getPrintableDate(date) {
@@ -63,16 +62,89 @@
         $('#chatform').submit(function (evt) {
             var line = $('#chatform [type=text]').val()
             $('#chatform [type=text]').val('')
-            chat.send(line);
+            peaks.send(line);
             return false;
         });
-    });
+$('#reset').click(function(evt){resetVUMax();});
+  });
 </script>
+<style>
+img.vuled {
+width:20px;
+height:20px;
+border-width:0px;
+}
+
+.legend {
+width:15px;
+height:15px;
+font-size:9px;
+}
+</style>
 </head>
 <body>
 <h3>Chat!</h3>
-<div id="ping"></div>
-<div id="chat" style="width: 60em; height: 20em; overflow:auto; border: 1px solid black">
+<div id="ping"></div><br/>
+<div id="length"></div>
+<!-- <div id="chat" style="width: 60em; height: 20em; overflow:auto;
+  border: 1px solid black"></div> -->
+<input type="submit" id="reset" value="reset"/>
+
+<div id="vu">
+  <table style="text-align: center; align: center"><tr>
+<td> <img class="vuled" id="l48" src="/static/green_off.png">
+<td> <img class="vuled" id="l42" src="/static/green_off.png">
+  <td> <img class="vuled" id="l36" src="/static/green_off.png">
+  <td> <img class="vuled" id="l30" src="/static/green_off.png">
+  <td> <img class="vuled" id="l24" src="/static/green_off.png">
+  <td> <img class="vuled" id="l18" src="/static/green_off.png">
+  <td> <img class="vuled" id="l12" src="/static/green_off.png">
+    <td> <img class="vuled" id="l10" src="/static/green_off.png">  
+    <td> <img class="vuled" id="l8" src="/static/green_off.png">
+    <td> <img class="vuled" id="l6" src="/static/green_off.png">
+    <td> <img class="vuled" id="l5" src="/static/green_off.png">
+    <td> <img class="vuled" id="l4" src="/static/green_off.png">
+    <td> <img class="vuled" id="l3" src="/static/green_off.png">
+    <td> <img class="vuled" id="l2" src="/static/green_off.png">
+    <td> <img class="vuled" id="l1" src="/static/amber_off.png">
+    <td> <img class="vuled" id="l0" src="/static/red_off.png">
+      <td>   <div id="maxL"></div>
+  <tr/>
+    <td>-48
+      <td>-42
+    <td>-36
+      <td>-30
+    <td>-24
+      <td>-18
+    <td>-12
+      <td>-10
+    <td>-8
+      <td>-6
+              <td>-5
+                      <td>-4
+                              <td>-3
+                                      <td>-2
+                                              <td>-1
+                                                      <td>FSD
+    <tr/>
+<td> <img class="vuled" id="r48" src="/static/green_off.png">
+<td> <img class="vuled" id="r42" src="/static/green_off.png">
+  <td> <img class="vuled" id="r36" src="/static/green_off.png">
+  <td> <img class="vuled" id="r30" src="/static/green_off.png">
+  <td> <img class="vuled" id="r24" src="/static/green_off.png">
+  <td> <img class="vuled" id="r18" src="/static/green_off.png">
+  <td> <img class="vuled" id="r12" src="/static/green_off.png">
+    <td> <img class="vuled" id="r10" src="/static/green_off.png">  
+    <td> <img class="vuled" id="r8" src="/static/green_off.png">
+    <td> <img class="vuled" id="r6" src="/static/green_off.png">
+    <td> <img class="vuled" id="r5" src="/static/green_off.png">
+    <td> <img class="vuled" id="r4" src="/static/green_off.png">
+    <td> <img class="vuled" id="r3" src="/static/green_off.png">
+    <td> <img class="vuled" id="r2" src="/static/green_off.png">
+    <td> <img class="vuled" id="r1" src="/static/amber_off.png">
+    <td> <img class="vuled" id="r0" src="/static/red_off.png">
+      <td>   <div id="maxR"></div>
+    </table>
 </div>
 <form id="chatform">
 <input type="text" />
