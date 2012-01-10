@@ -1,7 +1,13 @@
-This software provides a web interface to an audio recorder.  The main
-use case is concert recording on a portable Linux SBC such as a
-RaspberryPi or BeagleBone and controlled by the users phone over wifi.
+This software is for creating audio recorder appliances on Linux.  The main
+use case is concert recording with a small SBC such as a
+RaspberryPi or BeagleBone.  It is controlled with an HTML/JS interface.
 
-In addition to a double-buffered direct to FLAC recorder tuned for
-low power embedded processors and a web interface, the package
-includes Chef recipes for setting up and testing the complete system.
+The core consists of a Python Tornado server with a C++ module that interfaces with ALSA and writes the FLAC files.  TornadIO2/Socket.IO is used for realtime communication with the controlling browser.  Components are tied together with ZeroMQ.
+
+features:
+
+ * reliable, direct to FLAC recording
+ * generous pre-roll buffer
+ * gapless stop and re-record
+ * good level meters with peak hold
+
