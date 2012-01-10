@@ -9,7 +9,7 @@ if __name__ == '__main__':
     output = open("peakz", 'w')
     print ">>>", sys.argv[1]
     f = wave.open(sys.argv[1])
-    window = int(441000 * 0.1)
+    window = int(44100 * 0.1)
     unpack = Struct("<hh").unpack_from
     frame = f.readframes(window)
     while frame:
