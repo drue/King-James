@@ -66,14 +66,21 @@ application = Application(SockRouter.apply_routes([(r"/", IndexHandler)]),
 
 
 def zmq_producer(): 
-    '''Produce a nice time series sine wave''' 
+
     socket = context.socket(zmq.PUB) 
     socket.bind('inproc://peaks')
     il = ioloop.IOLoop.instance()
 
+    def peaks(file):
+        f = open(file, "r")
+        lines = f.readlines()
+        while True:
+            for line in lines:
+                yield line
+    p = peaks("peakz")
+
     def doIt():
-        r = l = 20 * math.log((1 + math.sin(time() * 2)) / 2)
-        socket.send(json.dumps([l, r])) 
+        socket.send(p.next()) 
         il.add_timeout(time() + 0.10, doIt)
  
     doIt()
