@@ -41,7 +41,7 @@ class Peaks(SocketConnection):
         print ">>> peaks closed"
 
 
-class Status(SocketConnection):
+class Ping(SocketConnection):
     def on_open(self, info):
         print 'Ping', repr(info)
 
@@ -54,10 +54,7 @@ class Status(SocketConnection):
 
 class RouterConnection(SocketConnection):
     __endpoints__ = {'/peaks': Peaks,
-                     '/status': Status}
-
-    def on_open(self, info):
-        print 'Router', repr(info)
+                     '/ping': Ping}
 
 
 SockRouter = TornadioRouter(RouterConnection)
@@ -75,9 +72,9 @@ def zmq_producer():
     il = ioloop.IOLoop.instance()
 
     def doIt():
-        r = l = 20 * math.log((1 + math.sin(time() * 7)) / 2)
+        r = l = 20 * math.log((1 + math.sin(time() * 2)) / 2)
         socket.send(json.dumps([l, r])) 
-        il.add_timeout(time() + 0.1, doIt)
+        il.add_timeout(time() + 0.10, doIt)
  
     doIt()
 

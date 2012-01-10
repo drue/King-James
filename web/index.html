@@ -8,7 +8,7 @@
     $(function() {
         var sock = new io.connect('http://' + window.location.host),
             peaks = new io.connect('http://' + window.location.host + '/peaks'),
-            ping = new io.connect('http://' + window.location.host + '/status');
+            ping = new io.connect('http://' + window.location.host + '/ping');
 
       peaks.on('message', function(data) {
       var d = $.parseJSON(data[0]);
@@ -46,9 +46,7 @@ $('#maxR').html(maxR);
             var server = decodeDate(data.server);
             var now = new Date();
 
-            $('#ping').html('Ping: ' + (now.getTime() - client.getTime()).toString() + ' ms.<br/>' +
-                            'C2S: ' + (server.getTime() - client.getTime()).toString() + ' ms.<br/>'
-                            );
+            $('#ping').html('Ping: ' + (now.getTime() - client.getTime()).toString() + ' ms.<br/>');
         });
 
         function sendPing()
@@ -81,14 +79,13 @@ height:15px;
 font-size:9px;
 }
 </style>
+<title>Recorder Status</title>
 </head>
 <body>
-<h3>Chat!</h3>
 <div id="ping"></div><br/>
 <div id="length"></div>
 <!-- <div id="chat" style="width: 60em; height: 20em; overflow:auto;
   border: 1px solid black"></div> -->
-<input type="submit" id="reset" value="reset"/>
 
 <div id="vu">
   <table style="text-align: center; align: center"><tr>
@@ -126,6 +123,8 @@ font-size:9px;
                                       <td>-2
                                               <td>-1
                                                       <td>FSD
+<td>                                                        <input type="submit" id="reset" value="RS"/>
+
     <tr/>
 <td> <img class="vuled" id="r48" src="/static/green_off.png">
 <td> <img class="vuled" id="r42" src="/static/green_off.png">
