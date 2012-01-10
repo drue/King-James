@@ -65,7 +65,7 @@ application = Application(SockRouter.apply_routes([(r"/", IndexHandler)]),
                            )
 
 
-def zmq_producer(): 
+def peak_producer(): 
 
     socket = context.socket(zmq.PUB) 
     socket.bind('inproc://peaks')
@@ -86,7 +86,7 @@ def zmq_producer():
     doIt()
 
 if __name__ == "__main__":
-    ioloop.IOLoop.instance().add_callback(zmq_producer)
+    ioloop.IOLoop.instance().add_callback(peak_producer)
     socketio_server = SocketServer(application)
 
   
