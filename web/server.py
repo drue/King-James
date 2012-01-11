@@ -17,7 +17,10 @@ from tornado.web import RequestHandler, Application
 import datetime
 
 context = zmq.Context() 
+il = ioloop.IOLoop.instance()
 
+STOPPED = 0
+RECORDING = 1
 
 class IndexHandler(RequestHandler):
     def get(self):
@@ -26,19 +29,20 @@ class IndexHandler(RequestHandler):
 
 class Peaks(SocketConnection):
     def on_open(self, info):
-        print '>>> Peaks', repr(info)
-
         socket = context.socket(zmq.SUB)
         socket.connect('inproc://peaks')
         socket.setsockopt(zmq.SUBSCRIBE, '')
         stream = zmqstream.ZMQStream(socket, tornado.ioloop.IOLoop.instance())
         stream.on_recv(self.send)
 
-    def on_message(self, message):
-        print ">>> got a message on the peaks chan", message
 
-    def on_close(self):
-        print ">>> peaks closed"
+class Status(SocketConnection):
+    def on_open(self, info):
+        socket = context.socket(zmq.SUB)
+        socket.connect('inproc://status')
+        socket.setsockopt(zmq.SUBSCRIBE, '')
+        stream = zmqstream.ZMQStream(socket, tornado.ioloop.IOLoop.instance())
+        stream.on_recv(self.send)
 
 
 class Ping(SocketConnection):
@@ -54,7 +58,8 @@ class Ping(SocketConnection):
 
 class RouterConnection(SocketConnection):
     __endpoints__ = {'/peaks': Peaks,
-                     '/ping': Ping}
+                     '/ping': Ping,
+                     '/status': Status}
 
 
 SockRouter = TornadioRouter(RouterConnection)
@@ -66,17 +71,17 @@ application = Application(SockRouter.apply_routes([(r"/", IndexHandler)]),
 
 
 def peak_producer(): 
-
+    """ some canned peak data for testing the UI """
     socket = context.socket(zmq.PUB) 
     socket.bind('inproc://peaks')
-    il = ioloop.IOLoop.instance()
+    
 
     def peaks(file):
         f = open(file, "r")
-        lines = f.readlines()
         while True:
-            for line in lines:
+            for line in f:
                 yield line
+            f.seek(0)
     p = peaks("peakz")
 
     def doIt():
@@ -85,8 +90,30 @@ def peak_producer():
  
     doIt()
 
+class StatusProducer(object):
+    """ some canned status data for testing the UI """
+    def __init__(self):
+        self.socket = context.socket(zmq.PUB) 
+        self.socket.bind('inproc://status')
+
+    def start(self):
+        self.t = time()
+        il.add_callback(self.doIt)
+
+    def doIt(self):
+        status = {'t' : time() - self.t,
+                  'r' : 3600 * 8.3,
+                  'm' : RECORDING,
+                  'c' : '',
+                  'b' : 60
+                  }
+        self.socket.send(json.dumps(status))
+        il.add_timeout(time() + 0.25, self.doIt)
+
+
 if __name__ == "__main__":
-    ioloop.IOLoop.instance().add_callback(peak_producer)
+    il.add_callback(peak_producer)
+    il.add_callback(StatusProducer().start)
     socketio_server = SocketServer(application)
 
   

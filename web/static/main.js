@@ -1,7 +1,17 @@
+function zeroPad(num,count)
+{
+  var numZeropad = num + '';
+  while(numZeropad.length < count) {
+    numZeropad = "0" + numZeropad;
+  }
+  return numZeropad;
+}
+
 $(function() {
     var sock = new io.connect('http://' + window.location.host),
     peaks = new io.connect('http://' + window.location.host + '/peaks'),
-    ping = new io.connect('http://' + window.location.host + '/ping');
+    ping = new io.connect('http://' + window.location.host + '/ping'),
+    status = new io.connect('http://' + window.location.host + '/status');
 
     peaks.on('message', function(data) {
                var d = $.parseJSON(data[0]);
@@ -10,6 +20,23 @@ $(function() {
                $('#maxR').html(maxR);
              });
 
+
+    status.on('message', function(data) {
+                var s = $.parseJSON(data[0]);
+                var allLeft = s.r / 3600;
+                var hoursLeft = Math.floor(allLeft);
+                var minutesLeft = Math.floor((allLeft - hoursLeft) * 60);
+                $('#timeLeft').html(hoursLeft + ":" + minutesLeft);
+
+                var elapsed = s.t / 3600;
+                var hoursElapsed = Math.floor(elapsed);
+                var minutes = (elapsed - hoursElapsed) * 60;
+                var minutesElapsed = Math.floor(minutes);
+                var secondsElapsed = Math.floor((minutes - minutesElapsed) * 60);
+                $('#timeElapsed').html(zeroPad(hoursElapsed, 2) + ":" +
+                                       zeroPad(minutesElapsed, 2) + ":" +
+                zeroPad(secondsElapsed, 2));
+              });
 
     function getPrintableDate(date) {
       return date.getFullYear().toString() + '/' +

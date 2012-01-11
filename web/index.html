@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
- <script src="/static/socket.io.js"></script>
- <script src="/static/vu.js"></script>
-  <script src="/static/main.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<script src="/static/socket.io.js"></script>
+<script src="/static/vu.js"></script>
+<script src="/static/main.js"></script>
 <style>
 img.vuled {
 width:20px;
@@ -24,20 +24,26 @@ font-size:20px;
 <title>Recorder Status</title>
 </head>
 <body>
-<div id="ping"></div><br/>
+<div id="status">
+<div id="timeElapsed"></div>
+<div id="subStatus">
+  <span id="timeLeft"></span>
+</div>
+
+<span id="ping"></span>
 <div id="length"></div>
-<!-- <div id="chat" style="width: 60em; height: 20em; overflow:auto;
-  border: 1px solid black"></div> -->
+
+</div>
 
 <div id="vu">
   <table style="text-align: center; align: center"><tr>
-<td> <img class="vuled" id="l48" src="/static/black_led.png">
-<td> <img class="vuled" id="l42" src="/static/black_led.png">
-  <td> <img class="vuled" id="l36" src="/static/black_led.png">
-  <td> <img class="vuled" id="l30" src="/static/black_led.png">
-  <td> <img class="vuled" id="l24" src="/static/black_led.png">
-  <td> <img class="vuled" id="l18" src="/static/black_led.png">
-  <td> <img class="vuled" id="l12" src="/static/black_led.png">
+    <td> <img class="vuled" id="l48" src="/static/black_led.png">
+    <td> <img class="vuled" id="l42" src="/static/black_led.png">
+    <td> <img class="vuled" id="l36" src="/static/black_led.png">
+    <td> <img class="vuled" id="l30" src="/static/black_led.png">
+    <td> <img class="vuled" id="l24" src="/static/black_led.png">
+    <td> <img class="vuled" id="l18" src="/static/black_led.png">
+    <td> <img class="vuled" id="l12" src="/static/black_led.png">
     <td> <img class="vuled" id="l10" src="/static/black_led.png">  
     <td> <img class="vuled" id="l8" src="/static/black_led.png">
     <td> <img class="vuled" id="l6" src="/static/black_led.png">
@@ -47,34 +53,36 @@ font-size:20px;
     <td> <img class="vuled" id="l2" src="/static/black_led.png">
     <td> <img class="vuled" id="l1" src="/static/black_led.png">
     <td> <img class="vuled" id="l0" src="/static/black_led.png">
-      <td>   <div class="peak" id="maxL"></div>
-  <tr/>
+    <td>   <div class="peak" id="maxL"></div>
+  </tr>
+  <tr>
     <td>-48
-      <td>-42
+    <td>-42
     <td>-36
-      <td>-30
+    <td>-30
     <td>-24
-      <td>-18
+    <td>-18
     <td>-12
-      <td>-10
+    <td>-10
     <td>-8
-      <td>-6
-              <td>-5
-                      <td>-4
-                              <td>-3
-                                      <td>-2
-                                              <td>-1
-                                                      <td>FSD
-<td>                                                        <input type="submit" id="reset" value="RS"/>
+    <td>-6
+    <td>-5
+    <td>-4
+    <td>-3
+    <td>-2
+    <td>-1
+    <td>FSD
+    <td>                                                        <input type="submit" id="reset" value="RS"/>
 
-    <tr/>
-<td> <img class="vuled" id="r48" src="/static/black_led.png">
-<td> <img class="vuled" id="r42" src="/static/black_led.png">
-  <td> <img class="vuled" id="r36" src="/static/black_led.png">
-  <td> <img class="vuled" id="r30" src="/static/black_led.png">
-  <td> <img class="vuled" id="r24" src="/static/black_led.png">
-  <td> <img class="vuled" id="r18" src="/static/black_led.png">
-  <td> <img class="vuled" id="r12" src="/static/black_led.png">
+  </tr>
+  <tr>
+    <td> <img class="vuled" id="r48" src="/static/black_led.png">
+    <td> <img class="vuled" id="r42" src="/static/black_led.png">
+    <td> <img class="vuled" id="r36" src="/static/black_led.png">
+    <td> <img class="vuled" id="r30" src="/static/black_led.png">
+    <td> <img class="vuled" id="r24" src="/static/black_led.png">
+    <td> <img class="vuled" id="r18" src="/static/black_led.png">
+    <td> <img class="vuled" id="r12" src="/static/black_led.png">
     <td> <img class="vuled" id="r10" src="/static/black_led.png">  
     <td> <img class="vuled" id="r8" src="/static/black_led.png">
     <td> <img class="vuled" id="r6" src="/static/black_led.png">
@@ -84,12 +92,9 @@ font-size:20px;
     <td> <img class="vuled" id="r2" src="/static/black_led.png">
     <td> <img class="vuled" id="r1" src="/static/black_led.png">
     <td> <img class="vuled" id="r0" src="/static/black_led.png">
-      <td>   <div class="peak" id="maxR"></div>
-    </table>
+    <td>   <div class="peak" id="maxR"></div>
+  </tr>
+</table>
 </div>
-<form id="chatform">
-<input type="text" />
-<input type="submit" />
-</form>
 </body>
 </html>
