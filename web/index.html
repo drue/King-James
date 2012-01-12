@@ -1,100 +1,93 @@
 <!DOCTYPE html>
 <html>
-<head>
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
-<script src="/static/socket.io.js"></script>
-<script src="/static/vu.js"></script>
-<script src="/static/main.js"></script>
-<style>
-img.vuled {
-width:20px;
-height:20px;
-border-width:0px;
-}
+  <head>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    <script src="/static/socket.io.js"></script>
+    <script src="/static/vu.js"></script>
+    <script src="/static/main.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/style.css"/>
+    <title>Recorder Status</title>
+  </head>
+  <body>
+    <div id="ui">
+      <div id="status">
+        <img id="mode" src="/static/recording.png"></img>
+        <div id="timeElapsed"></div>
+        <div id="subStatus">
+          <div class="topSubStatus">
+            <span id="format" class="left">24/88</span>
+            <span id="signal" class="center">NO SIGNAL</span>
+            <span id="timeLeft" class="right"></span>
+            <div class="clear"></div>
+          </div>
+          <hr/>
+          <div class="bottomSubStatus">
+            <div id="ping" class="right"></div>
+          </div>
+        </div>
+        <div class="clear"></div>
+      </div>
+      <div id="vu" class="left">
+        <table style="text-align: center; align: center"><tr>
+          <td> <img class="vuled" id="l48" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l42" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l36" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l30" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l24" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l18" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l12" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l10" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l8" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l6" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l5" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l4" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l3" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l2" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l1" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="l0" src="/static/black_led.png"></td>
+          <td>   <div class="peak" id="maxL"></div></td>
+        </tr>
+        <tr>
+          <td>-48</td>
+          <td>-42</td>
+          <td>-36</td>
+          <td>-30</td>
+          <td>-24</td>
+          <td>-18</td>
+          <td>-12</td>
+          <td>-10</td>
+          <td>-8</td>
+          <td>-6</td>
+          <td>-5</td>
+          <td>-4</td>
+          <td>-3</td>
+          <td>-2</td>
+          <td>-1</td>
+          <td>FSD</td>
+          <td> <input type="submit" id="reset" value="RS"/> </td>
 
-.legend {
-width:15px;
-height:15px;
-font-size:9px;
-}
-.peak {
-font-size:20px;
-}
-</style>
-<title>Recorder Status</title>
-</head>
-<body>
-<div id="status">
-<div id="timeElapsed"></div>
-<div id="subStatus">
-  <span id="timeLeft"></span>
-</div>
-
-<span id="ping"></span>
-<div id="length"></div>
-
-</div>
-
-<div id="vu">
-  <table style="text-align: center; align: center"><tr>
-    <td> <img class="vuled" id="l48" src="/static/black_led.png">
-    <td> <img class="vuled" id="l42" src="/static/black_led.png">
-    <td> <img class="vuled" id="l36" src="/static/black_led.png">
-    <td> <img class="vuled" id="l30" src="/static/black_led.png">
-    <td> <img class="vuled" id="l24" src="/static/black_led.png">
-    <td> <img class="vuled" id="l18" src="/static/black_led.png">
-    <td> <img class="vuled" id="l12" src="/static/black_led.png">
-    <td> <img class="vuled" id="l10" src="/static/black_led.png">  
-    <td> <img class="vuled" id="l8" src="/static/black_led.png">
-    <td> <img class="vuled" id="l6" src="/static/black_led.png">
-    <td> <img class="vuled" id="l5" src="/static/black_led.png">
-    <td> <img class="vuled" id="l4" src="/static/black_led.png">
-    <td> <img class="vuled" id="l3" src="/static/black_led.png">
-    <td> <img class="vuled" id="l2" src="/static/black_led.png">
-    <td> <img class="vuled" id="l1" src="/static/black_led.png">
-    <td> <img class="vuled" id="l0" src="/static/black_led.png">
-    <td>   <div class="peak" id="maxL"></div>
-  </tr>
-  <tr>
-    <td>-48
-    <td>-42
-    <td>-36
-    <td>-30
-    <td>-24
-    <td>-18
-    <td>-12
-    <td>-10
-    <td>-8
-    <td>-6
-    <td>-5
-    <td>-4
-    <td>-3
-    <td>-2
-    <td>-1
-    <td>FSD
-    <td>                                                        <input type="submit" id="reset" value="RS"/>
-
-  </tr>
-  <tr>
-    <td> <img class="vuled" id="r48" src="/static/black_led.png">
-    <td> <img class="vuled" id="r42" src="/static/black_led.png">
-    <td> <img class="vuled" id="r36" src="/static/black_led.png">
-    <td> <img class="vuled" id="r30" src="/static/black_led.png">
-    <td> <img class="vuled" id="r24" src="/static/black_led.png">
-    <td> <img class="vuled" id="r18" src="/static/black_led.png">
-    <td> <img class="vuled" id="r12" src="/static/black_led.png">
-    <td> <img class="vuled" id="r10" src="/static/black_led.png">  
-    <td> <img class="vuled" id="r8" src="/static/black_led.png">
-    <td> <img class="vuled" id="r6" src="/static/black_led.png">
-    <td> <img class="vuled" id="r5" src="/static/black_led.png">
-    <td> <img class="vuled" id="r4" src="/static/black_led.png">
-    <td> <img class="vuled" id="r3" src="/static/black_led.png">
-    <td> <img class="vuled" id="r2" src="/static/black_led.png">
-    <td> <img class="vuled" id="r1" src="/static/black_led.png">
-    <td> <img class="vuled" id="r0" src="/static/black_led.png">
-    <td>   <div class="peak" id="maxR"></div>
-  </tr>
-</table>
-</div>
+        </tr>
+        <tr>
+          <td> <img class="vuled" id="r48" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r42" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r36" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r30" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r24" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r18" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r12" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r10" src="/static/black_led.png">  </td>
+          <td> <img class="vuled" id="r8" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r6" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r5" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r4" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r3" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r2" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r1" src="/static/black_led.png"></td>
+          <td> <img class="vuled" id="r0" src="/static/black_led.png"></td>
+          <td>   <div class="peak" id="maxR"></div></td>
+        </tr>
+      </table>
+    </div>
+  </div>
 </body>
 </html>

@@ -66,7 +66,7 @@ $(function() {
               var server = decodeDate(data.server);
               var now = new Date();
 
-              $('#ping').html('Ping: ' + (now.getTime() - client.getTime()).toString() + ' ms.<br/>');
+              $('#ping').html((now.getTime() - client.getTime()).toString() + ' ms');
             });
 
     function sendPing()
