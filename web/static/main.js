@@ -36,6 +36,10 @@ $(function() {
                 $('#timeElapsed').html(zeroPad(hoursElapsed, 2) + ":" +
                                        zeroPad(minutesElapsed, 2) + ":" +
                 zeroPad(secondsElapsed, 2));
+
+                $('#buffer').html(s.b + "s");
+
+                $('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
               });
 
     function getPrintableDate(date) {

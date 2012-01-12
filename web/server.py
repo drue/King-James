@@ -104,7 +104,7 @@ class StatusProducer(object):
         status = {'t' : time() - self.t,
                   'r' : 3600 * 8.3,
                   'm' : RECORDING,
-                  'c' : '',
+                  'c' : os.getloadavg(),
                   'b' : 60
                   }
         self.socket.send(json.dumps(status))
