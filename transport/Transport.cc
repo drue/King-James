@@ -10,12 +10,14 @@
 #include "Transport.h"
 #include <alsa/asoundlib.h>
 #include <pthread.h>
-#include "core.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include <fcntl.h>
 #include <FLAC/stream_encoder.h>
+
+#include "const.h"
+
 #define NUM_PERIODS 8
 #define DISK_BUFFER_SIZE BLOCK_SIZE * 64
 
@@ -33,7 +35,7 @@ void AlsaTPort::stop() {
 }
 
 
-AlsaTPort::AlsaTPort(int bits_per_sample, int sample_rate) {
+AlsaTPort::AlsaTPort(unsigned int card, unsigned int bits_per_sample, unsigned int sample_rate) {
   this->bits_per_sample = bits_per_sample;
   this->sample_rate = sample_rate;
         
@@ -48,7 +50,7 @@ AlsaTPort::AlsaTPort(int bits_per_sample, int sample_rate) {
   // set when we are all finished
   finished = 0;
      
-  cap = new APort(0, bits_per_sample, sample_rate);  // 0 == capture
+  cap = new APort(0, card, bits_per_sample, sample_rate);  // 0 == capture
 
   this->aligned_buffer_size = cap->getPeriodBytes() * NUM_PERIODS;
 #ifdef DEBUG
@@ -74,7 +76,6 @@ AlsaTPort::~AlsaTPort() {
 }
 
 void AlsaTPort::startRecording(char *path) {
-  FLAC__StreamEncoderState err;
   FLAC__StreamEncoderInitStatus initted;
     
   stop_flag = 0;
@@ -84,10 +85,14 @@ void AlsaTPort::startRecording(char *path) {
   filename = (char *)malloc(strlen(path));
   strcpy(filename, path);
 
-  fd = open64(path, O_WRONLY | O_TRUNC | O_CREAT | O_DIRECT, 
+  fd = open64(path, O_WRONLY | O_TRUNC | O_CREAT,
               S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-    
+
   fchmod(fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+  // don't cache this huge file we're about to write out and not reuse
+  posix_fadvise(fd, 0, 0, POSIX_FADV_NOREUSE);
+
 #ifdef DEBUG
   printf("file open.\n");
 #endif
@@ -129,7 +134,6 @@ void AlsaTPort::doCapture(void *foo)
   MItem *i;
   struct sched_param schp;
   int size = 0;
-  int r;
   const int bits_per_frame = obj->cap->getBitsPerFrame();
     
 #ifdef DEBUG
@@ -177,7 +181,7 @@ void AlsaTPort::doCapture(void *foo)
       // no signal
       usleep(1000);
       // try to start again...
-      r = obj->cap->start();
+      obj->cap->start();
     }
     else {
       obj->Q->returnEmpty(i);
@@ -316,6 +320,7 @@ void AlsaTPort::metadata_callback(const FLAC__StreamEncoder *encoder, const FLAC
   const FLAC__uint64 samples = metadata->data.stream_info.total_samples;
   const unsigned min_framesize = metadata->data.stream_info.min_framesize;
   const unsigned max_framesize = metadata->data.stream_info.max_framesize;
+  ssize_t amount;
 
   assert(metadata->type == FLAC__METADATA_TYPE_STREAMINFO);
 
@@ -331,7 +336,7 @@ void AlsaTPort::metadata_callback(const FLAC__StreamEncoder *encoder, const FLAC
   close(obj->fd);
   fd = open64(obj->filename, O_WRONLY | O_APPEND);
   // write out any data still buffered
-  write(fd, obj->wbuffer->buf, obj->wbuffer->size);
+  amount = write(fd, obj->wbuffer->buf, obj->wbuffer->size);
   close(fd);
 	
   if(0 == (f = fopen(obj->filename, "r+b")))

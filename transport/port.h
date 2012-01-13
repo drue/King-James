@@ -23,7 +23,7 @@ class APort {
 	int period_bytes;
     public:
 	int got_signal;
-	APort(int direction, unsigned int bits_per_sample, unsigned int sample_rate);
+	APort(int direction, unsigned int card, unsigned int bits_per_sample, unsigned int sample_rate);
 	APort();
 	~APort();
 	void prepare();

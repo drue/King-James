@@ -2,7 +2,7 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <pthread.h>
-#include "core.h"
+#include "const.h"
 
 // ##### QItem:  Single buffer, aligned/multiple on/of BLOCK_SIZE
 QItem::QItem (unsigned int msize)

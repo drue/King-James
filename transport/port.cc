@@ -17,24 +17,27 @@
 
 APort::APort(){};
 
-APort::APort(int direction, unsigned int bits_per_sample, unsigned int sample_rate)
+APort::APort(int direction, unsigned int card, unsigned int bits_per_sample, unsigned int sample_rate)
 {
   snd_pcm_hw_params_t *parms;
   snd_pcm_sw_params_t *swparams;
   snd_pcm_info_t *info;
   int err, x;
-  char *id;
-    
+  char id[64];
+  char cardString[256];
+
+  sprintf(cardString, "plughw:%u,0", card);
+
   this->bits_per_sample = bits_per_sample;
   this->sample_rate = sample_rate;
 
   if(direction == CAPTURE){
-    err=snd_pcm_open(&(handle), "plughw:0,0", SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
-    id = "CAPTURE";
+    err=snd_pcm_open(&(handle), cardString, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
+    strcpy(id, "CAPTURE");
   }
   else {
     err=snd_pcm_open(&(handle), "PDAudioCF", SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
-    id = "PLAYBACK";
+    strcpy(id, "PLAYBACK");
   }
     
   if (err < 0) { 
@@ -55,12 +58,12 @@ APort::APort(int direction, unsigned int bits_per_sample, unsigned int sample_ra
   if (bits_per_sample == 24){
     format = SND_PCM_FORMAT_U32_BE;
     err = snd_pcm_hw_params_set_access(handle, parms,
-				       SND_PCM_ACCESS_RW_NONINTERLEAVED);
+                                       SND_PCM_ACCESS_RW_NONINTERLEAVED);
   }
   else {
     format = SND_PCM_FORMAT_S16_BE;
     err = snd_pcm_hw_params_set_access(handle, parms,
-				       SND_PCM_ACCESS_RW_NONINTERLEAVED);
+                                       SND_PCM_ACCESS_RW_NONINTERLEAVED);
   }
     
   err = snd_pcm_hw_params_set_format(handle, parms, format);
@@ -69,24 +72,24 @@ APort::APort(int direction, unsigned int bits_per_sample, unsigned int sample_ra
   err = snd_pcm_hw_params_set_rate_near(handle, parms, &sample_rate, &x);
     
   /*    if ((err = snd_pcm_hw_params_set_period_size (handle, parms, 8, 0)) < 0) {
-	printf("Can't set periods to 8.\n");
-	}
+        printf("Can't set periods to 8.\n");
+        }
 
     
-	if (period_time < 0)
-	period_time = buffer_time;    
-	period_time = snd_pcm_hw_params_set_period_size(handle, parms,
-	PERIOD, 0);
-	#ifdef DEBUG
-	assert(period_time >= 0);
-	printf("period_time: %d\n", period_time);
-	#endif
+        if (period_time < 0)
+        period_time = buffer_time;    
+        period_time = snd_pcm_hw_params_set_period_size(handle, parms,
+        PERIOD, 0);
+        #ifdef DEBUG
+        assert(period_time >= 0);
+        printf("period_time: %d\n", period_time);
+        #endif
 
-	buffer_time = snd_pcm_hw_params_set_buffer_size(handle, parms, BUFFER);
-	#ifdef DEBUG
-	assert(buffer_time >= 0);
-	printf("buffer_time: %d\n", buffer_time);
-	#endif
+        buffer_time = snd_pcm_hw_params_set_buffer_size(handle, parms, BUFFER);
+        #ifdef DEBUG
+        assert(buffer_time >= 0);
+        printf("buffer_time: %d\n", buffer_time);
+        #endif
   */
     
   err = snd_pcm_hw_params(handle, parms);
@@ -97,7 +100,7 @@ APort::APort(int direction, unsigned int bits_per_sample, unsigned int sample_ra
   period_bytes =  period_time * (bits_per_frame) / 8;
 
 #ifdef DEBUG
-  printf("bps: %d pt: %d period_bytes: %d\n", bits_per_sample, period_time, period_bytes);
+  printf("bps: %u pt: %lu period_bytes: %d\n", bits_per_sample, period_time, period_bytes);
 #endif
     
 
@@ -268,18 +271,18 @@ int APort::readInterleavedIntoBuf(u_char *buf, ssize_t count)
       xrun();
     } else if (r == -ESTRPIPE) {
       while ((res = snd_pcm_resume(handle)) == -EAGAIN)
-	usleep(500);	/* wait until suspend flag is released */
+        usleep(500);	/* wait until suspend flag is released */
       if (res < 0) {
-	if ((res = snd_pcm_prepare(handle)) < 0) {
+        if ((res = snd_pcm_prepare(handle)) < 0) {
 #ifdef DEBUG
-	  printf("suspend: prepare error: %s", snd_strerror(res));
+          printf("suspend: prepare error: %s", snd_strerror(res));
 #endif
-	  exit(-1);
+          exit(-1);
 
-	}
+        }
       }
     } else if (r < 0) {
-      printf("read error: %s", snd_strerror(r));
+      printf("read error1: %s", snd_strerror(r));
       exit(-1);
     }
     if (r > 0) {
@@ -309,57 +312,57 @@ int APort::readIntoBuf(u_char **buf, ssize_t count)
     if(snd_pcm_avail_update(handle) > 0) {
       r = snd_pcm_readn(handle, tmp, count);
       if (r == -EAGAIN || (r >= 0 && r < count)) {
-	snd_pcm_wait(handle, 1000);
+        snd_pcm_wait(handle, 1000);
       } else if (r == -EPIPE) {
-	xrun();
+        xrun();
       } else if (r == -ESTRPIPE){
-	while ((r = snd_pcm_resume(handle)) == -EAGAIN)
-	  usleep(500);	/* wait until suspend flag is released */
-	if (res < 0) {
-	  if ((res = snd_pcm_prepare(handle)) < 0) {
+        while ((r = snd_pcm_resume(handle)) == -EAGAIN)
+          usleep(500);	/* wait until suspend flag is released */
+        if (res < 0) {
+          if ((res = snd_pcm_prepare(handle)) < 0) {
 #ifdef DEBUG
-	    printf("suspend: prepare error: %s", snd_strerror(res));
+            printf("suspend: prepare error: %s", snd_strerror(res));
 #endif
-	    exit(-1);
-	  }
-	}
+            exit(-1);
+          }
+        }
       }
       else     if (r < 0) {
-	printf("read error: %d %s", r, snd_strerror(r));
-	snd_pcm_wait(handle, 1000);
+        printf("read error2: %ld %s", r, snd_strerror(r));
+        snd_pcm_wait(handle, 1000);
       }
     }
     else {
       if ((res = snd_pcm_status(handle, status))<0) {
-	printf("status error: %s", snd_strerror(res));
-	exit(-1);
+        printf("status error: %s", snd_strerror(res));
+        exit(-1);
       }
 
       if (snd_pcm_status_get_state(status) != SND_PCM_STATE_RUNNING) {      
-	//dumpStatus();
+        //dumpStatus();
       }
 
       if (snd_pcm_status_get_state(status) == SND_PCM_STATE_DRAINING) {
-	// no signal
-	//	printf ("No Signal!\n");
-	got_signal = 0;
-	//snd_pcm_drop(handle);
-	return -1;
+        // no signal
+        //	printf ("No Signal!\n");
+        got_signal = 0;
+        //snd_pcm_drop(handle);
+        return -1;
       }
       if (snd_pcm_status_get_state(status) == SND_PCM_STATE_SETUP) {
-	prepare();
-	res = start();
-	if (res) {
-	  return 0;
-	}
-	else {
-	  return -1;
-	}
+        prepare();
+        res = start();
+        if (res) {
+          return 0;
+        }
+        else {
+          return -1;
+        }
       }
       if (snd_pcm_status_get_state(status) == SND_PCM_STATE_PREPARED) {
-	// no signal
-	got_signal = 0;
-	  return -1;
+        // no signal
+        got_signal = 0;
+        return -1;
       }
     }
     if (r > 0) {
@@ -406,14 +409,14 @@ int APort::writeFromBuf(u_char **buf, ssize_t count)
     if (res < 0) {
       if ((res = snd_pcm_prepare(handle)) < 0) {
 #ifdef DEBUG
-	printf("suspend: prepare error: %s", snd_strerror(res));
+        printf("suspend: prepare error: %s", snd_strerror(res));
 #endif
-	exit(-1);
+        exit(-1);
       }
     }
   }
   else if (r < 0) {
-    printf("read error: %s", snd_strerror(r));
+    printf("read error3: %s", snd_strerror(r));
     exit(-1);
   }
   if (r > 0) {

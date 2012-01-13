@@ -45,7 +45,7 @@ protected:
 
 public:
     sem_t finished_sem;
-    AlsaTPort(int bits_per_sample, int sample_rate);
+    AlsaTPort(unsigned int card, unsigned int bits_per_sample, unsigned int sample_rate);
     virtual ~AlsaTPort();
     void startRecording(char *path);
     virtual void stop();
