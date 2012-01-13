@@ -7,55 +7,25 @@
 // ##### QItem:  Single buffer, aligned/multiple on/of BLOCK_SIZE
 QItem::QItem (unsigned int msize)
 {
-  orig_buf = (unsigned char *)malloc(msize + BLOCK_SIZE);
-  if((size_t)orig_buf % BLOCK_SIZE == 0)
-	buf = orig_buf;
-  else
-	buf = (orig_buf + BLOCK_SIZE) - ((size_t)orig_buf % BLOCK_SIZE);
+  buf = (FLAC__int32 *)malloc(msize);
   next = NULL;
-  size = 0;
-  maxsize = msize;
+  frames = 0;
+  bufsize = msize;
 }
 
 QItem::~QItem() {
-  free(orig_buf);
+  free(buf);
 }
-
-
-
-// ##### MItem: multichannel buffer for non-interleaved access
-MItem::MItem (unsigned int chans, unsigned int msize)
-{
-  unsigned int i;
-
-  bufs = (unsigned char **)malloc(chans * sizeof(void *));
-  for(i=0;i< chans; i++){
-    bufs[i] = (unsigned char *)malloc(msize);
-  }
-  next = NULL;
-  size = msize;
-  maxsize = msize;
-  channels = chans;
-}
-
-MItem::~MItem() {
-  unsigned int i;
-  for(i=0;i < channels; i++){
-    free(bufs[i]);
-  }
-  free(bufs);
-}
-
 
 
 
 
 // ##### MemQ: locking fifo queue with recycled buffer stack
 
-MemQ::MemQ(unsigned int channels, unsigned int buf_size)
+MemQ::MemQ(unsigned int max_size, unsigned int buf_size)
 {
   this->buf_size = buf_size;
-  this->channels = channels;
+  this->max_size = max_size;
   head = tail = empty = NULL;
   pthread_mutex_init(&lock, NULL);  // locks the main queue
   pthread_mutex_init(&mtlock, NULL); // locks the QItem pool (a stack in this implementation)
@@ -71,13 +41,13 @@ MemQ::~MemQ() {
   }
 }
 
-MItem *MemQ::getEmpty()
+QItem *MemQ::getEmpty()
 {
-  MItem *foo;
+  QItem *foo;
     
   pthread_mutex_lock(&mtlock);
   if (empty == NULL) {
-	foo = new MItem(channels, buf_size);
+	foo = new QItem(buf_size);
   }
   else {	
 	foo = empty;
@@ -88,7 +58,7 @@ MItem *MemQ::getEmpty()
   return foo;
 }
 
-void MemQ::returnEmpty(MItem *mt) {
+void MemQ::returnEmpty(QItem *mt) {
   pthread_mutex_lock(&mtlock);
   if (empty != NULL) {
     delete(mt);
@@ -98,8 +68,8 @@ void MemQ::returnEmpty(MItem *mt) {
   pthread_mutex_unlock(&mtlock);
 }
 
-MItem *MemQ::getHead() {
-  MItem *foo;
+QItem *MemQ::getHead() {
+  QItem *foo;
     
   pthread_mutex_lock(&lock);
   foo = head;
@@ -114,7 +84,9 @@ MItem *MemQ::getHead() {
   return foo;
 }
 
-void MemQ::putTail(MItem *i) {
+void MemQ::putTail(QItem *i) {
+  QItem *foo;
+
   pthread_mutex_lock(&lock);
   if (head == NULL) {
 	head = tail = i;
@@ -123,6 +95,18 @@ void MemQ::putTail(MItem *i) {
 	tail->next = i;
 	tail = i;
   }
+
+  size += 1;
+  while(size > max_size) {
+    foo = head;
+    head = foo->next;
+    foo->next = NULL;
+    size -= 1;
+    if (empty != NULL)
+      delete(foo);
+    else empty = foo;
+  }
+    
   pthread_mutex_unlock(&lock);
 }
 

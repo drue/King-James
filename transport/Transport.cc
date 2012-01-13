@@ -2,7 +2,7 @@
  *  Transport.cc
  *  
  *
- *  Created by burris on Mon Oct 01 2001.
+ *  Created on Mon Oct 01 2001.
  *  Copyright (c) 2001-2010 Andrew Loewenstern. All rights reserved.
  *
  */
@@ -14,12 +14,14 @@
 #include <sys/stat.h>
 
 #include <fcntl.h>
-#include <FLAC/stream_encoder.h>
+#include <FLAC/all.h>
 
 #include "const.h"
 
 #define NUM_PERIODS 8
 #define DISK_BUFFER_SIZE BLOCK_SIZE * 64
+
+#define PREROLL_LENGTH 30
 
 void Transport::stop() {
   // stop playing
@@ -57,7 +59,7 @@ AlsaTPort::AlsaTPort(unsigned int card, unsigned int bits_per_sample, unsigned i
   printf("aligned buffer size: %d\n", aligned_buffer_size);
 #endif
     
-  Q = new MemQ(2, aligned_buffer_size);
+  Q = new MemQ((PREROLL_LENGTH * sample_rate * sizeof(FLAC__int32) * 2) / aligned_buffer_size, aligned_buffer_size);
 
   pthread_mutex_init(&maxlock, NULL);  // locks the main queue
 
@@ -85,13 +87,10 @@ void AlsaTPort::startRecording(char *path) {
   filename = (char *)malloc(strlen(path));
   strcpy(filename, path);
 
-  fd = open64(path, O_WRONLY | O_TRUNC | O_CREAT,
-              S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  output = fopen64(path, "w+");
 
-  fchmod(fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-  // don't cache this huge file we're about to write out and not reuse
-  posix_fadvise(fd, 0, 0, POSIX_FADV_NOREUSE);
+  // only cache beginning of this huge file we're about to write out and not reuse
+  posix_fadvise(fileno(output), 8196, 0, POSIX_FADV_NOREUSE);
 
 #ifdef DEBUG
   printf("file open.\n");
@@ -110,7 +109,12 @@ void AlsaTPort::startRecording(char *path) {
   FLAC__stream_encoder_set_min_residual_partition_order(encoder, 3);
   FLAC__stream_encoder_set_max_residual_partition_order(encoder, 3);
 
-  initted = FLAC__stream_encoder_init_stream(encoder, write_callback, NULL, NULL, metadata_callback, this);
+  initted = FLAC__stream_encoder_init_FILE(encoder, output, NULL, this);
+  if (initted != FLAC__STREAM_ENCODER_INIT_STATUS_OK)
+    {
+      printf("Couldn't initialize FLAC encoder.\n");
+      exit(-1);
+    }
 
 #ifdef DEBUG
   printf("initted = %d, %s\n", initted, *FLAC__StreamEncoderStateString);
@@ -131,7 +135,7 @@ void AlsaTPort::startRecording(char *path) {
 void AlsaTPort::doCapture(void *foo)
 {
   AlsaTPort *obj = (AlsaTPort *)foo;
-  MItem *i;
+  QItem *i;
   struct sched_param schp;
   int size = 0;
   const int bits_per_frame = obj->cap->getBitsPerFrame();
@@ -160,13 +164,13 @@ void AlsaTPort::doCapture(void *foo)
 #endif
     
   while(!obj->stop_flag) {
-    // get empty MItem
+    // get empty QItem
     i = obj->Q->getEmpty();
     // pcm_read into MItem->buf
-    size = obj->cap->readIntoBuf(i->bufs, i->maxsize / (bits_per_frame / 16));
+    size = obj->cap->readIntoBuf(i->buf, i->bufsize / (4 * 2));
     if (size > 0){
       // push MItem onto Q
-      i->size = size;
+      i->frames = size;
       obj->Q->putTail(i);
       // signal semaphore
       sem_post(&(obj->asem));
@@ -199,11 +203,11 @@ void AlsaTPort::doCapture(void *foo)
 void AlsaTPort::doSave(void *foo)
 {
   AlsaTPort *obj = (AlsaTPort *)foo;
-  MItem *o, *i;
+  QItem *i;
   int remaining, finished = 0;
-  long x, *ias, *ibs;
   unsigned ws;
-  FLAC__int32 *as, *bs;
+  FLAC__int32 tMaxA, tMaxB;
+
 #ifdef DEBUG
   printf("Save thread starting...\n");
 #endif
@@ -215,44 +219,27 @@ void AlsaTPort::doSave(void *foo)
     i = obj->Q->getHead();
     if (i != NULL) {
 
-      o = obj->Q->getEmpty();
-      x = 0;
-      ws = 0;
-      ias = (long*)o->bufs[0];
-      ibs = (long*)o->bufs[1];
-      as = (FLAC__int32*) o->bufs[0];
-      bs = (FLAC__int32*) o->bufs[1];
+      ws = tMaxA = tMaxB = 0;
 
-      pthread_mutex_lock(&obj->maxlock);	
-      while (ws < i->size) {
-
-        as[ws] = i->bufs[0][x]; as[ws] <<= 8;
-        as[ws] |= i->bufs[0][x+1]; as[ws] <<= 8;
-        as[ws] |= i->bufs[0][x+2];
-
-        bs[ws] = i->bufs[1][x]; bs[ws] <<= 8;
-        bs[ws] |= i->bufs[1][x+1]; bs[ws] <<= 8;
-        bs[ws] |= i->bufs[1][x+2];
-	
-        as[ws] -= 0x800000;
-        bs[ws] -= 0x800000;
-
-        if (ias[ws] > obj->amax) obj->amax = ias[ws];
-        if (ibs[ws] > obj->bmax) obj->bmax = ibs[ws];
-
-        ws++;
-        x+=4;
+      while (ws < i->frames * 2) {
+        // find peaks
+        if (abs(i->buf[ws]) > tMaxA) tMaxA = abs(i->buf[ws]);
+        if (abs(i->buf[ws+1]) > tMaxB) tMaxB = abs(i->buf[ws+1]);
+        ws+= 2;
       }
-      pthread_mutex_unlock(&obj->maxlock);	
+      
+      pthread_mutex_lock(&obj->maxlock);	
+      if (tMaxA > obj->amax) obj->amax = tMaxA;
+      if (tMaxB > obj->bmax) obj->bmax = tMaxB;
+      pthread_mutex_unlock(&obj->maxlock);
 
       // write QItem->buf to disk
-      if (!FLAC__stream_encoder_process(obj->encoder, (const FLAC__int32 **)o->bufs, i->size)){
+      if (!FLAC__stream_encoder_process_interleaved(obj->encoder, (const FLAC__int32 *)i->buf, i->frames)){
         printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(obj->encoder), 
                FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(obj->encoder)]);
       }
       // put QItem back into pool
       obj->Q->returnEmpty(i);
-      obj->Q->returnEmpty(o);
       /*free(out[0]);
         free(out[1]);*/
     }
@@ -266,6 +253,7 @@ void AlsaTPort::doSave(void *foo)
       if(!remaining) {
         FLAC__stream_encoder_finish(obj->encoder);
         FLAC__stream_encoder_delete(obj->encoder);
+        fclose(obj->output);
         ++finished;
       }
     }
@@ -278,112 +266,6 @@ void AlsaTPort::wait()
 {
   if(!finished)
     sem_wait(&finished_sem);
-}
-
-FLAC__StreamEncoderWriteStatus AlsaTPort::write_callback(const FLAC__StreamEncoder *encoder, const FLAC__byte buffer[], size_t bytes, unsigned samples, unsigned current_frame, void *client_data)
-{
-  int x = 0;
-  unsigned int extras;
-  QItem *toWrite = (QItem *)((AlsaTPort*)client_data)->wbuffer;
-  int fd = (int)((AlsaTPort*)client_data)->fd;
-    
-  x = bytes;
-  if( bytes > (toWrite->maxsize - toWrite->size) )
-    x = toWrite->maxsize - toWrite->size;
-    
-  memcpy(toWrite->buf + toWrite->size, buffer, x);
-  toWrite->size += x;
-  extras = bytes - x;
-
-  if(toWrite->size == toWrite->maxsize) {
-    if (write(fd, toWrite->buf, toWrite->size) != (ssize_t)toWrite->size) {
-      perror("james disk write error:");
-      return FLAC__STREAM_ENCODER_WRITE_STATUS_FATAL_ERROR;
-    }
-    toWrite->size = 0;
-    if (extras > 0) {
-      assert (extras < toWrite->maxsize);
-      memcpy(toWrite->buf, buffer+x, extras);
-      toWrite->size += extras;
-    }
-  }
-    
-  return FLAC__STREAM_ENCODER_WRITE_STATUS_OK;
-}
-
-void AlsaTPort::metadata_callback(const FLAC__StreamEncoder *encoder, const FLAC__StreamMetadata *metadata, void *client_data)
-{
-  FLAC__byte b;
-  FILE *f;
-  AlsaTPort *obj = (AlsaTPort*)client_data;
-  int fd;
-  const FLAC__uint64 samples = metadata->data.stream_info.total_samples;
-  const unsigned min_framesize = metadata->data.stream_info.min_framesize;
-  const unsigned max_framesize = metadata->data.stream_info.max_framesize;
-  ssize_t amount;
-
-  assert(metadata->type == FLAC__METADATA_TYPE_STREAMINFO);
-
-  /*
-   * we get called by the encoder when the encoding process has
-   * finished so that we can update the STREAMINFO and SEEKTABLE
-   * blocks.
-   */
-
-  (void)encoder; /* silence compiler warning about unused parameter */
-
-  // close and reopen file in non-direct mode
-  close(obj->fd);
-  fd = open64(obj->filename, O_WRONLY | O_APPEND);
-  // write out any data still buffered
-  amount = write(fd, obj->wbuffer->buf, obj->wbuffer->size);
-  close(fd);
-	
-  if(0 == (f = fopen(obj->filename, "r+b")))
-    return;
-
-  /* all this is based on intimate knowledge of the stream header
-   * layout, but a change to the header format that would break this
-   * would also break all streams encoded in the previous format.
-   */
-
-  if(-1 == fseek(f, 26, SEEK_SET)) goto samples_;
-  fwrite(metadata->data.stream_info.md5sum, 1, 16, f);
-
- samples_:
-  if(-1 == fseek(f, 21, SEEK_SET)) goto framesize_;
-  if(fread(&b, 1, 1, f) != 1) goto framesize_;
-  if(-1 == fseek(f, 21, SEEK_SET)) goto framesize_;
-  b = (b & 0xf0) | (FLAC__byte)((samples >> 32) & 0x0F);
-  if(fwrite(&b, 1, 1, f) != 1) goto framesize_;
-  b = (FLAC__byte)((samples >> 24) & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto framesize_;
-  b = (FLAC__byte)((samples >> 16) & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto framesize_;
-  b = (FLAC__byte)((samples >> 8) & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto framesize_;
-  b = (FLAC__byte)(samples & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto framesize_;
-
- framesize_:
-  if(-1 == fseek(f, 12, SEEK_SET)) goto end_;
-  b = (FLAC__byte)((min_framesize >> 16) & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto end_;
-  b = (FLAC__byte)((min_framesize >> 8) & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto end_;
-  b = (FLAC__byte)(min_framesize & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto end_;
-  b = (FLAC__byte)((max_framesize >> 16) & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto end_;
-  b = (FLAC__byte)((max_framesize >> 8) & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto end_;
-  b = (FLAC__byte)(max_framesize & 0xFF);
-  if(fwrite(&b, 1, 1, f) != 1) goto end_;
-
- end_:
-  fflush(f);
-  fclose(f);
-  return;
 }
 
 int AlsaTPort::gotSignal() {

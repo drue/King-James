@@ -7,46 +7,34 @@
 
 */
 #include <pthread.h>
+#include <FLAC/all.h>
 
 class QItem {
  public:
-  unsigned char *buf;
+ FLAC__int32 *buf;
+  unsigned int frames;
+  unsigned int bufsize;
   QItem *next;
-  unsigned int size;
-  unsigned int maxsize;
   QItem(unsigned int max_size);
   ~QItem();
- protected:
-  unsigned char*orig_buf;
 };
-
-class MItem {
- public:
-  unsigned char **bufs;
-  MItem *next;
-  unsigned int size;
-  unsigned int channels;
-  unsigned int maxsize;
-  MItem(unsigned int chans, unsigned int max_size);
-  ~MItem();
-};
-
 
 
 class MemQ {
  public:
-  MItem *getEmpty();
-  void returnEmpty(MItem *mt);
-  MItem *getHead();
-  void putTail(MItem *i);
-  MemQ(unsigned int channels, unsigned int buf_size);
+  QItem *getEmpty();
+  void returnEmpty(QItem *mt);
+  QItem *getHead();
+  void putTail(QItem *i);
+  MemQ(unsigned int max_size, unsigned int buf_size);
   ~MemQ();
  protected:
-  MItem *head;
-  MItem *tail;
-  MItem *empty;
+  QItem *head;
+  QItem *tail;
+  QItem *empty;
   unsigned int buf_size;
-  unsigned int channels;
+  unsigned int max_size;
+  unsigned int size;
   pthread_mutex_t lock;
   pthread_mutex_t mtlock;
 };

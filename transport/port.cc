@@ -2,7 +2,7 @@
  *  port.cc
  *  
  *
- *  Created by burris on Mon Oct 01 2001.
+ *  Created on Mon Oct 01 2001.
  *  Copyright (c) 2002 Andrew Loewenstern. All rights reserved.
  *
  */
@@ -36,7 +36,7 @@ APort::APort(int direction, unsigned int card, unsigned int bits_per_sample, uns
     strcpy(id, "CAPTURE");
   }
   else {
-    err=snd_pcm_open(&(handle), "PDAudioCF", SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
+    err=snd_pcm_open(&(handle), cardString, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
     strcpy(id, "PLAYBACK");
   }
     
@@ -55,16 +55,9 @@ APort::APort(int direction, unsigned int card, unsigned int bits_per_sample, uns
   err = snd_pcm_hw_params_any(handle, parms);
     
    
-  if (bits_per_sample == 24){
-    format = SND_PCM_FORMAT_U32_BE;
-    err = snd_pcm_hw_params_set_access(handle, parms,
-                                       SND_PCM_ACCESS_RW_NONINTERLEAVED);
-  }
-  else {
-    format = SND_PCM_FORMAT_S16_BE;
-    err = snd_pcm_hw_params_set_access(handle, parms,
-                                       SND_PCM_ACCESS_RW_NONINTERLEAVED);
-  }
+  format = SND_PCM_FORMAT_S24;
+  err = snd_pcm_hw_params_set_access(handle, parms,
+                                     SND_PCM_ACCESS_RW_INTERLEAVED);
     
   err = snd_pcm_hw_params_set_format(handle, parms, format);
   err = snd_pcm_hw_params_set_channels(handle, parms, 2);
@@ -257,44 +250,8 @@ void APort::stop() {
   snd_pcm_drop(handle);
 }
 
-int APort::readInterleavedIntoBuf(u_char *buf, ssize_t count)
-{
-  ssize_t r;
-  size_t result = 0;
-  int res;
 
-  while (count > 0) {
-    r = snd_pcm_readi(handle, buf, count);
-    if (r == -EAGAIN || (r >= 0 && r < count)) {
-      snd_pcm_wait(handle, 10000);
-    } else if (r == -EPIPE) {
-      xrun();
-    } else if (r == -ESTRPIPE) {
-      while ((res = snd_pcm_resume(handle)) == -EAGAIN)
-        usleep(500);	/* wait until suspend flag is released */
-      if (res < 0) {
-        if ((res = snd_pcm_prepare(handle)) < 0) {
-#ifdef DEBUG
-          printf("suspend: prepare error: %s", snd_strerror(res));
-#endif
-          exit(-1);
-
-        }
-      }
-    } else if (r < 0) {
-      printf("read error1: %s", snd_strerror(r));
-      exit(-1);
-    }
-    if (r > 0) {
-      result += r;
-      count -= r;
-      buf += r * bits_per_sample / 8;
-    }
-  }
-  return result;
-}
-
-int APort::readIntoBuf(u_char **buf, ssize_t count)
+int APort::readIntoBuf(FLAC__int32 *buf, ssize_t count)
 {
   snd_pcm_status_t *status;
   ssize_t r=0;
@@ -304,13 +261,9 @@ int APort::readIntoBuf(u_char **buf, ssize_t count)
   int x = 0;
 
   snd_pcm_status_alloca(&status);
-  while (count > 0) {
-    void *tmp[2];
-    tmp[0] = buf[0] + (4 * result);
-    tmp[1] = buf[1] + (4 * result);
-    
+  while(r == 0) {
     if(snd_pcm_avail_update(handle) > 0) {
-      r = snd_pcm_readn(handle, tmp, count);
+      r = snd_pcm_readi(handle, (void *)buf, count);
       if (r == -EAGAIN || (r >= 0 && r < count)) {
         snd_pcm_wait(handle, 1000);
       } else if (r == -EPIPE) {
@@ -328,7 +281,7 @@ int APort::readIntoBuf(u_char **buf, ssize_t count)
         }
       }
       else     if (r < 0) {
-        printf("read error2: %ld %s", r, snd_strerror(r));
+        printf("read error2: %ld %s\n", r, snd_strerror(r));
         snd_pcm_wait(handle, 1000);
       }
     }
@@ -416,7 +369,7 @@ int APort::writeFromBuf(u_char **buf, ssize_t count)
     }
   }
   else if (r < 0) {
-    printf("read error3: %s", snd_strerror(r));
+    printf("read error3: %s\n", snd_strerror(r));
     exit(-1);
   }
   if (r > 0) {

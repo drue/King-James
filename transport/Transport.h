@@ -31,7 +31,7 @@ protected:
     unsigned int aligned_buffer_size;
     QItem *wbuffer;
     char *filename;
-    int fd;
+    FILE *output;
     pthread_mutex_t maxlock;
 
     static void doCapture(void *foo);

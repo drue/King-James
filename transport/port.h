@@ -2,12 +2,13 @@
  *  port.h
  *  
  *
- *  Created by burris on Mon Oct 01 2001.
+ *  Created on Mon Oct 01 2001.
  *  Copyright (c) 2001 __CompanyName__. All rights reserved.
  *
  */
 
 #include <alsa/asoundlib.h>
+#include <FLAC/all.h>
 
 #define CAPTURE 0
 #define PLAYBACK 1
@@ -31,8 +32,7 @@ class APort {
 	int getBitsPerFrame() { return bits_per_frame;}
 	int getPeriodBytes();
 	int getPeriodTime();
-	int readInterleavedIntoBuf(u_char *buf, ssize_t count);
-	int readIntoBuf(u_char **buf, ssize_t count);
+    int readIntoBuf(FLAC__int32 *buf, ssize_t count);
 	int writeInterleavedFromBuf(u_char *buf, ssize_t count);
 	int writeFromBuf(u_char **buf, ssize_t count);
 	int linkWithPort(APort *port);
