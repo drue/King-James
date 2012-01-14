@@ -90,7 +90,7 @@ void AlsaTPort::startRecording(char *path) {
   output = fopen64(path, "w+");
 
   // only cache beginning of this huge file we're about to write out and not reuse
-  posix_fadvise(fileno(output), 8196, 0, POSIX_FADV_NOREUSE);
+  posix_fadvise(fileno(output), 8192, 0, POSIX_FADV_NOREUSE);
 
 #ifdef DEBUG
   printf("file open.\n");
