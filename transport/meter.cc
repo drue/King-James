@@ -8,6 +8,8 @@
 #include "meter.h"
 #include "memq.h"
 
+#define DECAY 1700
+
 Meter::Meter(MemQ *aQ, Spool *aSpool) {
   finished = false;
   Q = aQ;
@@ -62,6 +64,10 @@ void Meter::run(void *foo) {
 
   char str[256];
   int err;
+  int millis;
+  int decay;
+  FLAC__int32 prevA = 0;
+  FLAC__int32 prevB = 0;
 
   while(1) {
     // get QItem from Q
@@ -79,9 +85,21 @@ void Meter::run(void *foo) {
         ws+= 2;
       }
     
+      millis = i->frames * 1000 / 46500;
+      decay = 8388608 * millis / DECAY;
+
       pthread_mutex_lock(&obj->maxLock);	
       if (tMaxA > obj->amax) obj->amax = tMaxA;
       if (tMaxB > obj->bmax) obj->bmax = tMaxB;
+
+      if(tMaxA < (prevA - decay))
+        tMaxA = prevA - decay;
+      if(tMaxB < (prevB - decay))
+        tMaxB = prevB - decay;
+
+      prevA = tMaxA;
+      prevB = tMaxB;
+
       sprintf(str, "[%3.1f, %3.1f]", 20 * log10(tMaxA / 8388607.0),  20 * log10(tMaxB / 8388607.0));
       pthread_mutex_unlock(&obj->maxLock);
       
