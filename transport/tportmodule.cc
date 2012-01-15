@@ -1,5 +1,5 @@
 #include <python2.7/Python.h>
-#include "Transport.h"
+#include "transport.h"
 
 
 
@@ -11,6 +11,7 @@ typedef struct {
 static PyObject *tport_getattr(PyAlsaTPort *tp, char *name);
 static PyObject *newTPort(PyObject *self, PyObject *args);
 static PyObject *tport_stop(PyObject *self, PyObject *args);
+static PyObject *tport_stop_recording(PyObject *self, PyObject *args);
 static PyObject *tport_start(PyObject *self, PyObject *args);
 static PyObject *tport_wait(PyObject *self, PyObject *args);
 static PyObject *tport_got_signal(PyObject *self, PyObject *args);
@@ -43,6 +44,7 @@ static PyTypeObject AlsaTPortType = {
 
 static struct PyMethodDef tport_methods[] = {
   {"startRecording",	(PyCFunction)tport_start, 1},
+  {"stopRecording",	(PyCFunction)tport_stop_recording, 1},
   {"stop",	(PyCFunction)tport_stop, 1},
   {"waitTillFinished",	(PyCFunction)tport_wait, 1},
   {"gotSignal",	(PyCFunction)tport_got_signal, 1},
@@ -104,6 +106,7 @@ static PyObject *tport_start(PyObject *self, PyObject *args)
   Py_INCREF(Py_None);
   return Py_None;
 }
+
 static PyObject *tport_stop(PyObject *self, PyObject *args)
 {
   ((PyAlsaTPort*)self)->tport->stop();
@@ -111,6 +114,15 @@ static PyObject *tport_stop(PyObject *self, PyObject *args)
   Py_INCREF(Py_None);
   return Py_None;
 }
+
+static PyObject *tport_stop_recording(PyObject *self, PyObject *args)
+{
+  ((PyAlsaTPort*)self)->tport->stopRecording();
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
 static PyObject *tport_wait(PyObject *self, PyObject *args)
 {
   ((PyAlsaTPort*)self)->tport->wait();   

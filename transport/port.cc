@@ -62,7 +62,7 @@ APort::APort(int direction, unsigned int card, unsigned int bits_per_sample, uns
   err = snd_pcm_hw_params_set_format(handle, parms, format);
   err = snd_pcm_hw_params_set_channels(handle, parms, 2);
   x = 0;
-  err = snd_pcm_hw_params_set_rate_near(handle, parms, &sample_rate, &x);
+  sample_rate = snd_pcm_hw_params_set_rate_near(handle, parms, &sample_rate, &x);
     
   /*    if ((err = snd_pcm_hw_params_set_period_size (handle, parms, 8, 0)) < 0) {
         printf("Can't set periods to 8.\n");
@@ -261,16 +261,16 @@ int APort::readIntoBuf(FLAC__int32 *buf, ssize_t count)
   int x = 0;
 
   snd_pcm_status_alloca(&status);
-  while(r == 0) {
+  while(count > 0) {
     if(snd_pcm_avail_update(handle) > 0) {
-      r = snd_pcm_readi(handle, (void *)buf, count);
+      r = snd_pcm_readi(handle, (void *)buf + (result * 8), count);
       if (r == -EAGAIN || (r >= 0 && r < count)) {
         snd_pcm_wait(handle, 1000);
       } else if (r == -EPIPE) {
         xrun();
       } else if (r == -ESTRPIPE){
         while ((r = snd_pcm_resume(handle)) == -EAGAIN)
-          usleep(500);	/* wait until suspend flag is released */
+          usleep(1000);	/* wait until suspend flag is released */
         if (res < 0) {
           if ((res = snd_pcm_prepare(handle)) < 0) {
 #ifdef DEBUG

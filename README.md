@@ -25,7 +25,7 @@ History
 -------
 
 This code is based on a project I started in 2001.  In 2012 the code is
-currently being overhauled in a major way to build a new device.
+being overhauled in a major way to build a new device.
 
 The original device was a PC-104 SBC with a 266mHz Pentium-MMX, 4x20
 serial LCD + keypad, PC-104>PCI adapter, a SPDIF/AES sound card, hard

@@ -23,6 +23,10 @@ Vagrant::Config.run do |config|
   config.vm.forward_port "devhttp", 8000, 8000
   config.vm.forward_port "websocket", 9999, 9999
 
+  config.vm.customize do |vm|
+    vm.memory_size = 256
+  end
+
   # Share an additional folder to the guest VM. The first argument is
   # an identifier, the second is the path on the guest to mount the
   # folder, and the third is the path on the host to the actual folder.

@@ -22,6 +22,9 @@ il = ioloop.IOLoop.instance()
 STOPPED = 0
 RECORDING = 1
 
+import transport
+port = transport.newTPort(1, 24, 48000)
+
 class IndexHandler(RequestHandler):
     def get(self):
         self.render('index.html')
@@ -30,11 +33,10 @@ class IndexHandler(RequestHandler):
 class Peaks(SocketConnection):
     def on_open(self, info):
         socket = context.socket(zmq.SUB)
-        socket.connect('inproc://peaks')
+        socket.connect('ipc:///tmp/peaks.ipc')
         socket.setsockopt(zmq.SUBSCRIBE, '')
         stream = zmqstream.ZMQStream(socket, tornado.ioloop.IOLoop.instance())
         stream.on_recv(self.send)
-
 
 class Status(SocketConnection):
     def on_open(self, info):
@@ -70,26 +72,6 @@ application = Application(SockRouter.apply_routes([(r"/", IndexHandler)]),
                            )
 
 
-def peak_producer(): 
-    """ some canned peak data for testing the UI """
-    socket = context.socket(zmq.PUB) 
-    socket.bind('inproc://peaks')
-    
-
-    def peaks(file):
-        f = open(file, "r")
-        while True:
-            for line in f:
-                yield line
-            f.seek(0)
-    p = peaks("peakz")
-
-    def doIt():
-        socket.send(p.next()) 
-        il.add_timeout(time() + 0.10, doIt)
- 
-    doIt()
-
 class StatusProducer(object):
     """ some canned status data for testing the UI """
     def __init__(self):
@@ -112,8 +94,11 @@ class StatusProducer(object):
 
 
 if __name__ == "__main__":
-    il.add_callback(peak_producer)
     il.add_callback(StatusProducer().start)
-    socketio_server = SocketServer(application)
+    try:
+        socketio_server = SocketServer(application)
+    finally:
+        port.stop()
+        port.waitTillFinished()
 
   

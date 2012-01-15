@@ -5,54 +5,43 @@
 
 #include "port.h"
 #include "memq.h"
-
-extern "C" {
-#include <FLAC/stream_encoder.h>
-}
+#include "spool.h"
+#include "meter.h"
 
 
 class Transport {
-public:
-    virtual void stop();
-    virtual void startRecording(char *path);
+ public:
+  virtual void stop();
+  virtual void startRecording(char *path);
 };
 
 class AlsaTPort: public Transport {
-protected:
-    pthread_t cthread, sthread;
-    sem_t asem;
-    MemQ *Q;
-    FLAC__StreamEncoder *encoder;
-    int stop_flag, tstop, finished;
-    int bits_per_sample, sample_rate;
-    long amax, bmax, aavg, bavg;
-    APort *pla;
-    APort *cap;
-    unsigned int aligned_buffer_size;
-    QItem *wbuffer;
-    char *filename;
-    FILE *output;
-    pthread_mutex_t maxlock;
+ protected:
+  MemQ *Q;
+  Meter *meter;
+  Spool *spool;
 
-    static void doCapture(void *foo);
-    void doReturn();
-    static void doSave(void *foo);
-    static FLAC__StreamEncoderWriteStatus write_callback(const FLAC__StreamEncoder *encoder, 
-                                                         const FLAC__byte buffer[],
-                                                         size_t bytes, unsigned samples,
-                                                         unsigned current_frame, void *client_data);
-    static void metadata_callback(const FLAC__StreamEncoder *encoder, const FLAC__StreamMetadata *metadata, void *client_data);
+  bool stop_flag;
+  int bits_per_sample, sample_rate;
+  APort *pla;
+  APort *cap;
+  unsigned int prerollSize;
+  unsigned int aligned_buffer_size;
+  pthread_t cthread;
+  static void doCapture(void *foo);
+  void doReturn();
 
-public:
-    sem_t finished_sem;
-    AlsaTPort(unsigned int card, unsigned int bits_per_sample, unsigned int sample_rate);
-    virtual ~AlsaTPort();
-    void startRecording(char *path);
-    virtual void stop();
-    virtual void wait();
-    virtual int gotSignal();
-
-    long getmaxa();
-    long getmaxb();
-    void resetmax();
+ public:
+  sem_t finished_sem;
+  AlsaTPort(unsigned int card, unsigned int bits_per_sample, unsigned int sample_rate);
+  virtual ~AlsaTPort();
+  void startRecording(char *path);
+  void stopRecording();
+  virtual void stop();
+  virtual void wait();
+  virtual int gotSignal();
+  long getmaxa();
+  long getmaxb();
+  void resetmax();
+    
 };

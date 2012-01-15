@@ -7,6 +7,8 @@ package "git-core"
 package "mercurial"
 package "libzmq-dev"
 package "libevent-dev"
+package "gdb"
+package "htop"
 
 python_pip "pyzmq" do
   action :install

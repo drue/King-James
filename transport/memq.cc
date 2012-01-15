@@ -1,8 +1,11 @@
-#include "memq.h"
 #include <malloc.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <time.h>
+
 #include "const.h"
+#include "memq.h"
+
 
 // ##### QItem:  Single buffer, aligned/multiple on/of BLOCK_SIZE
 QItem::QItem (unsigned int msize)
@@ -27,18 +30,34 @@ MemQ::MemQ(unsigned int max_size, unsigned int buf_size)
   this->buf_size = buf_size;
   this->max_size = max_size;
   head = tail = empty = NULL;
+  size = 0;
   pthread_mutex_init(&lock, NULL);  // locks the main queue
   pthread_mutex_init(&mtlock, NULL); // locks the QItem pool (a stack in this implementation)
+  sem_init(&asem, 0, 0);
 }
 
 
 MemQ::~MemQ() {
+  struct timespec ts;
+
+  clock_gettime(CLOCK_REALTIME, &ts) ;
+
   while(head != NULL) {
-	delete(getHead());
+	delete(getHead(&ts));
   }
   while(empty != NULL) {
 	delete(getEmpty());
   }
+}
+
+unsigned int MemQ::getSize() {
+  unsigned int s;
+
+  pthread_mutex_lock(&lock);
+  s = this->size;
+  pthread_mutex_unlock(&lock);
+
+  return s;
 }
 
 QItem *MemQ::getEmpty()
@@ -68,14 +87,17 @@ void MemQ::returnEmpty(QItem *mt) {
   pthread_mutex_unlock(&mtlock);
 }
 
-QItem *MemQ::getHead() {
+QItem *MemQ::getHead(struct timespec *wait) {
   QItem *foo;
     
+  sem_timedwait(&asem, wait);
   pthread_mutex_lock(&lock);
   foo = head;
   if (foo != NULL) {
 	head = foo->next;
 	foo->next = NULL;
+    assert(size != 0);
+    size -= 1;
   }
   if (foo == tail) {
 	tail = NULL;
@@ -88,6 +110,7 @@ void MemQ::putTail(QItem *i) {
   QItem *foo;
 
   pthread_mutex_lock(&lock);
+
   if (head == NULL) {
 	head = tail = i;
   }
@@ -97,6 +120,10 @@ void MemQ::putTail(QItem *i) {
   }
 
   size += 1;
+
+  if (size <= max_size)
+    sem_post(&asem);
+
   while(size > max_size) {
     foo = head;
     head = foo->next;
@@ -109,6 +136,5 @@ void MemQ::putTail(QItem *i) {
     
   pthread_mutex_unlock(&lock);
 }
-
 
 

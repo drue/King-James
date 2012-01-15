@@ -17,13 +17,14 @@ class APort {
     protected:
 	snd_pcm_t *handle;
 	snd_pcm_format_t format;
-	int bits_per_sample, sample_rate;
 	int buffer_time;
 	snd_pcm_uframes_t period_time;
 	int bits_per_frame;
 	int period_bytes;
     public:
 	int got_signal;
+	int bits_per_sample, sample_rate;
+
 	APort(int direction, unsigned int card, unsigned int bits_per_sample, unsigned int sample_rate);
 	APort();
 	~APort();
