@@ -51,6 +51,10 @@ void  Meter::resetmax()
   pthread_mutex_unlock(&maxLock);
 }
 
+float todBFS(FLAC__int32 sample)  {
+  return 20 * log10(sample / 8388607.0);
+}
+
 void Meter::run(void *foo) {
   Meter *obj = (Meter *)foo;
   unsigned ws;
@@ -100,8 +104,7 @@ void Meter::run(void *foo) {
       prevA = tMaxA;
       prevB = tMaxB;
 
-      sprintf(str, "[%.0f, %.0f, %.0f, %.0f]", 20 * log10(tMaxA / 8388607.0),  20 * log10(tMaxB / 8388607.0),
-               20 * log10(obj->amax / 8388607.0),  20 * log10(obj->bmax / 8388607.0));
+      sprintf(str, "[%.0f, %.0f, %.0f, %.0f]", todBFS(tMaxA),  todBFS(tMaxB), todBFS(obj->amax),  todBFS(obj->bmax));
       pthread_mutex_unlock(&obj->maxLock);
       
       obj->spool->pushItem(i);

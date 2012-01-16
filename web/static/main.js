@@ -26,7 +26,7 @@ $(function() {
                 var allLeft = s.r / 3600;
                 var hoursLeft = Math.floor(allLeft);
                 var minutesLeft = Math.floor((allLeft - hoursLeft) * 60);
-                $('#timeLeft').html(hoursLeft + ":" + minutesLeft);
+                $('#timeLeft').html(hoursLeft + ":" + zeroPad(minutesLeft, 2));
 
                 var elapsed = s.t / 3600;
                 var hoursElapsed = Math.floor(elapsed);
@@ -36,6 +36,8 @@ $(function() {
                 $('#timeElapsed').html(zeroPad(hoursElapsed, 2) + ":" +
                                        zeroPad(minutesElapsed, 2) + ":" +
                 zeroPad(secondsElapsed, 2));
+
+                $('#format').html(s.f);
 
                 $('#buffer').html(s.b + "s");
 

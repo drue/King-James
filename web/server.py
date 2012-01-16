@@ -33,8 +33,14 @@ pr.start()
 mode = STOPPED
 n = 0
 
+depth = 24
+rate = 48000
+card = 1
+comp_ratio = .65
+
 import transport
-port = transport.newTPort(1, 24, 48000)
+port = transport.newTPort(card, depth, rate)
+
 try:
     class IndexHandler(RequestHandler):
         def get(self):
@@ -68,6 +74,8 @@ try:
             stream.on_recv(self.send)
 
     class Status(SocketConnection):
+        remaining = 0
+        rTime = 0
         def on_open(self, info):
             self.socket = context.socket(zmq.SUB)
             self.socket.connect('ipc:///tmp/progressOut.ipc')
@@ -81,10 +89,15 @@ try:
             
         def process(self, data):
             o = []
+            if (time() - Status.rTime > 30):
+                stat = os.statvfs('.')
+                Status.remaining = (stat.f_bsize * stat.f_bavail) / ((depth / 8) * rate * comp_ratio)
+                Status.rTime = time()
             for msg in data:
                 d = json.loads(msg)
                 d['c'] = os.getloadavg()
-                d['r'] = 0
+                d['r'] = Status.remaining
+                d['f'] = "%s/%s" % (depth, str(rate)[:2])
                 o.append(json.dumps(d))
             if o:
                 self.send(o)
