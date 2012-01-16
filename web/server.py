@@ -16,11 +16,10 @@ import tornado
 from tornado.web import RequestHandler, Application
 import datetime
 
+from dummy import StatusProducer
+
 context = zmq.Context() 
 il = ioloop.IOLoop.instance()
-
-STOPPED = 0
-RECORDING = 1
 
 import transport
 port = transport.newTPort(1, 24, 48000)
@@ -71,31 +70,12 @@ application = Application(SockRouter.apply_routes([(r"/", IndexHandler)]),
                            static_path = os.path.join(os.path.dirname(__file__), "static")
                            )
 
-
-class StatusProducer(object):
-    """ some canned status data for testing the UI """
-    def __init__(self):
-        self.socket = context.socket(zmq.PUB) 
-        self.socket.bind('inproc://status')
-
-    def start(self):
-        self.t = time()
-        il.add_callback(self.doIt)
-
-    def doIt(self):
-        status = {'t' : time() - self.t,
-                  'r' : 3600 * 8.3,
-                  'm' : RECORDING,
-                  'c' : os.getloadavg(),
-                  'b' : 60
-                  }
-        self.socket.send(json.dumps(status))
-        il.add_timeout(time() + 0.25, self.doIt)
-
-
 if __name__ == "__main__":
-    il.add_callback(StatusProducer().start)
+
     try:
+        ## dummy status messages
+        il.add_callback(StatusProducer(context).start)
+    
         socketio_server = SocketServer(application)
     finally:
         port.stop()
