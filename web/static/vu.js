@@ -1,18 +1,9 @@
-var maxL = -96;
-var maxR = -96;
-
-function resetVUMax() {
-  maxL = maxR = -96;
-}
 
 function lightVU(peaks) {
-  var l = Math.round(peaks[0]);
-  var r = Math.round(peaks[1]);
-
-  if(l > maxL)
-    maxL = l;
-  if(r > maxR)
-    maxR = r;
+  var l = peaks[0];
+  var r = peaks[1];
+  var maxL = peaks[2];
+  var maxR = peaks[3];
 
   var leds = [-48, -42, -36, -30, -24, -18, -15, -12, -9, -6, -5, -4, -3, -2, -1, 0];
   var green = '/static/green_on.png';

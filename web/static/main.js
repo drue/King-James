@@ -16,8 +16,8 @@ $(function() {
     peaks.on('message', function(data) {
                var d = $.parseJSON(data[0]);
                lightVU(d);
-               $('#maxL').html(maxL);
-               $('#maxR').html(maxR);
+               $('#maxL').html(d[2]);
+               $('#maxR').html(d[3]);
              });
 
 
@@ -89,13 +89,4 @@ $(function() {
       setTimeout(sendPing, 5000);
     }
     sendPing();
-
-    //send the message when submit is clicked
-    $('#chatform').submit(function (evt) {
-                            var line = $('#chatform [type=text]').val()
-                            $('#chatform [type=text]').val('')
-                            peaks.send(line);
-                            return false;
-                          });
-    $('#reset').click(function(evt){resetVUMax();});
   });

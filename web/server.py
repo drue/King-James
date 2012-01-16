@@ -55,6 +55,10 @@ try:
                 port.stopRecording()
                 mode = STOPPED
 
+    class ResetPeaksHandler(RequestHandler):
+        def post(self):
+            port.resetPeaks()
+
     class Peaks(SocketConnection):
         def on_open(self, info):
             self.socket = context.socket(zmq.SUB)
@@ -105,7 +109,8 @@ try:
     SockRouter = TornadioRouter(RouterConnection)
 
     application = Application(SockRouter.apply_routes([(r"/", IndexHandler),
-                                                         (r"/record", RecordHandler)]),
+                                                         (r"/record", RecordHandler),
+                                                         (r"/resetPeaks", ResetPeaksHandler)]),
                                socket_io_port = 8000,
                                static_path = os.path.join(os.path.dirname(__file__), "static")
                                )

@@ -100,7 +100,8 @@ void Meter::run(void *foo) {
       prevA = tMaxA;
       prevB = tMaxB;
 
-      sprintf(str, "[%3.1f, %3.1f]", 20 * log10(tMaxA / 8388607.0),  20 * log10(tMaxB / 8388607.0));
+      sprintf(str, "[%.0f, %.0f, %.0f, %.0f]", 20 * log10(tMaxA / 8388607.0),  20 * log10(tMaxB / 8388607.0),
+               20 * log10(obj->amax / 8388607.0),  20 * log10(obj->bmax / 8388607.0));
       pthread_mutex_unlock(&obj->maxLock);
       
       obj->spool->pushItem(i);

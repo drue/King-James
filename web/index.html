@@ -79,8 +79,22 @@
           <td>-2</td>
           <td>-1</td>
           <td>FSD</td>
-          <td> <input type="submit" id="reset" value="RS"/> </td>
-
+          <td>
+            <form action="javascript:true;" id="resetPeaksForm">
+            <script type="text/javascript">
+            $("#resetPeaksForm").submit(function() {
+            $.ajax({
+            type: "POST",
+            url: "/resetPeaks",
+            data: $("#resetPeaksForm").serializeArray(),
+            success: function() {
+            }
+            });
+            return false;
+            });</script>
+            <input type="submit" id="reset" value="RS"/>
+            </form>
+          </td>
         </tr>
         <tr>
           <td> <img class="vuled" id="r48" src="/static/black_led.png"></td>
