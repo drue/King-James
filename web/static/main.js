@@ -40,7 +40,17 @@ $(function() {
                 $('#buffer').html(s.b + "s");
 
                 $('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
+
+                if (s.m == 0) {
+                  $('#mode').attr('src', '/static/paused.png');
+                }
+                else {
+                  $('#mode').attr('src', '/static/recording.png');
+                }
+
+
               });
+
 
     function getPrintableDate(date) {
       return date.getFullYear().toString() + '/' +
