@@ -44,20 +44,20 @@ function lightVU(peaks) {
   else if (!(maxL >= -18 && maxL < -12))
     $('#l18').attr('src', '/static/black_led.png');
 
-  if (l > -12 || (maxL >= -12 && maxL < -10))
+  if (l > -15 || (maxL >= -1 && maxL < -12))
+    $('#l15').attr('src', '/static/green_on.png');
+  else if (!(maxL >= -15 && maxL < -12))
+    $('#l15').attr('src', '/static/black_led.png');
+
+  if (l > -12 || (maxL >= -12 && maxL < -9))
     $('#l12').attr('src', '/static/green_on.png');
-  else if (!(maxL >= -12 && maxL < -10))
+  else if (!(maxL >= -12 && maxL < -9))
     $('#l12').attr('src', '/static/black_led.png');
 
-  if (l > -10 || (maxL >= -10 && maxL < -8))
-    $('#l10').attr('src', '/static/green_on.png');
-  else if (!(maxL >= -10 && maxL < -8))
-    $('#l10').attr('src', '/static/black_led.png');
-
-  if (l > -8 || (maxL >= -8 && maxL < -6))
-    $('#l8').attr('src', '/static/green_on.png');
-  else if (!(maxL >= -8 && maxL < -6))
-    $('#l8').attr('src', '/static/black_led.png');
+  if (l > -9 || (maxL >= -9 && maxL < -6))
+    $('#l9').attr('src', '/static/green_on.png');
+  else if (!(maxL >= -9 && maxL < -6))
+    $('#l9').attr('src', '/static/black_led.png');
 
   if (l > -6 || (maxL >= -6 && maxL < -5))
     $('#l6').attr('src', '/static/green_on.png');
@@ -127,20 +127,20 @@ function lightVU(peaks) {
   else if (!(maxR >= -18 && maxR < -12))
     $('#r18').attr('src', '/static/black_led.png');
 
-  if (r > -12 || (maxR >= -12 && maxR < -10))
+  if (l > -15 || (maxR >= -1 && maxR < -12))
+    $('#r15').attr('src', '/static/green_on.png');
+  else if (!(maxR >= -15 && maxR < -12))
+    $('#r15').attr('src', '/static/black_led.png');
+
+  if (l > -12 || (maxR >= -12 && maxR < -9))
     $('#r12').attr('src', '/static/green_on.png');
-  else if (!(maxR >= -12 && maxR < -10))
+  else if (!(maxR >= -12 && maxR < -9))
     $('#r12').attr('src', '/static/black_led.png');
 
-  if (r > -10 || (maxR >= -10 && maxR < -8))
-    $('#r10').attr('src', '/static/green_on.png');
-  else if (!(maxR >= -10 && maxR < -8))
-    $('#r10').attr('src', '/static/black_led.png');
-
-  if (r > -8 || (maxR >= -8 && maxR < -6))
-    $('#r8').attr('src', '/static/green_on.png');
-  else if (!(maxR >= -8 && maxR < -6))
-    $('#r8').attr('src', '/static/black_led.png');
+  if (l > -9 || (maxR >= -9 && maxR < -6))
+    $('#r9').attr('src', '/static/green_on.png');
+  else if (!(maxR >= -9 && maxR < -6))
+    $('#r9').attr('src', '/static/black_led.png');
 
   if (r > -6 || (maxR >= -6 && maxR < -5))
     $('#r6').attr('src', '/static/green_on.png');
