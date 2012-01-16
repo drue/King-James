@@ -2,7 +2,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <time.h>
+#include <sys/time.h>
+#include <math.h>
 
 #include <zmq.hpp>
 
@@ -16,7 +17,11 @@ Spool::Spool(unsigned int prerollSize, unsigned int bps, unsigned int sr)
   sample_rate = sr;
   finished = false;
   started = false;
-  socket.bind("ipc:///tmp/progress.ipc");
+  oFrames = 0;
+  aFrames = 0;
+  lastProgress = 0
+;
+  socket.connect("ipc:///tmp/progressIn.ipc");
 }
 
 Spool::~Spool() {
@@ -30,17 +35,17 @@ void Spool::finish() {
 
 void Spool::pushItem(QItem *item) {
   unsigned int bufLength;
-  time_t t;
 
   Q->putTail(item);
 
-  t = time(NULL);
-  if (t - lastProgress >= 1) {
+  aFrames += item->frames;
+
+  if (aFrames - lastProgress > sample_rate) {
+    lastProgress = aFrames;
     bufLength = Q->getSize() * item->frames / sample_rate;
-    sprintf(progMsg, "{\"t\":%lld, \"m\":%d, \"b\":%d}", oFrames/sample_rate, started ? 1 : 0, bufLength);
+    sprintf(progMsg, "{\"t\":%.0f, \"m\":%d, \"b\":%d}", floor(oFrames / sample_rate), started ? 1 : 0, bufLength);
     zmq::message_t msg(progMsg, strlen(progMsg), NULL);
     socket.send(msg);
-    lastProgress = t;
   }
 }
 
@@ -89,14 +94,13 @@ void Spool::doWrite(void *foo) {
     clock_gettime(CLOCK_REALTIME, &ts) ;
     ts.tv_nsec += 100000000;
     i = obj->Q->getHead(&ts);
-
     if (i != NULL) {
+      obj->oFrames += i->frames;
       // write QItem->buf to disk
       if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i->buf, i->frames)){
         printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(encoder), 
                FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)]);
       }
-      obj->oFrames += i->frames;
       delete i;
     }
 

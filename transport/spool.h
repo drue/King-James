@@ -15,8 +15,9 @@ class Spool {
   static void doWrite(void *foo);
   zmq::context_t ctx;
   zmq::socket_t socket;
-  long long oFrames;
-  time_t lastProgress;
+  long long oFrames; // output frames
+  long long aFrames; // all frames seen
+  long long lastProgress; // aFrame we last sent progress on
   char progMsg[256];
 
  public:

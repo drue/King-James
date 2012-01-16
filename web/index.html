@@ -11,7 +11,20 @@
   <body>
     <div id="ui">
       <div id="status">
-        <img id="mode" src="/static/paused.png"></img>
+        <form action="javascript:true;" id="modeform">
+        <script type="text/javascript">
+        $("#modeform").submit(function() {
+          $.ajax({
+            type: "POST",
+            url: "/record",
+            data: $("#modeform").serializeArray(),
+            success: function() {
+        }
+        });
+        return false;
+        });</script>
+        <input type="image" name="m" id="mode" src="/static/paused.png"></img>
+        </form>
         <div id="timeElapsed"></div>
         <div id="subStatus">
           <div class="topSubStatus">

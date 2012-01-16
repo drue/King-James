@@ -84,9 +84,10 @@ void AlsaTPort::startRecording(char *path) {
 }
 
 void AlsaTPort::stopRecording() {
-  spool->finish();
+  Spool *oldSpool = spool;
   spool = new Spool(prerollSize, this->bits_per_sample, cap->sample_rate);
   meter->switchSpool(spool);
+  oldSpool->finish();
 }
 
 void AlsaTPort::doCapture(void *foo)
