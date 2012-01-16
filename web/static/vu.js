@@ -39,12 +39,12 @@ function lightVU(peaks) {
   else if (!(maxL >= -24 && maxL < -18))
   $('#l24').attr('src', '/static/black_led.png');
 
-  if (l > -18 || (maxL >= -18 && maxL < -12))
+  if (l > -18 || (maxL >= -18 && maxL < -15))
     $('#l18').attr('src', '/static/green_on.png');
-  else if (!(maxL >= -18 && maxL < -12))
+  else if (!(maxL >= -18 && maxL < -15))
     $('#l18').attr('src', '/static/black_led.png');
 
-  if (l > -15 || (maxL >= -1 && maxL < -12))
+  if (l > -15 || (maxL >= -15 && maxL < -12))
     $('#l15').attr('src', '/static/green_on.png');
   else if (!(maxL >= -15 && maxL < -12))
     $('#l15').attr('src', '/static/black_led.png');
@@ -122,12 +122,12 @@ function lightVU(peaks) {
   else if (!(maxR >= -24 && maxR < -18))
   $('#r24').attr('src', '/static/black_led.png');
 
-  if (r > -18 || (maxR >= -18 && maxR < -12))
+  if (r > -18 || (maxR >= -18 && maxR < -15))
     $('#r18').attr('src', '/static/green_on.png');
-  else if (!(maxR >= -18 && maxR < -12))
+  else if (!(maxR >= -18 && maxR < -15))
     $('#r18').attr('src', '/static/black_led.png');
 
-  if (l > -15 || (maxR >= -1 && maxR < -12))
+  if (l > -15 || (maxR >= -15 && maxR < -12))
     $('#r15').attr('src', '/static/green_on.png');
   else if (!(maxR >= -15 && maxR < -12))
     $('#r15').attr('src', '/static/black_led.png');
