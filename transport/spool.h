@@ -1,5 +1,8 @@
 #include <pthread.h>
 #include <semaphore.h>
+#include <time.h>
+
+#include <zmq.hpp>
 
 #include "memq.h"
 
@@ -10,6 +13,11 @@ class Spool {
  protected:
   pthread_t sthread;;
   static void doWrite(void *foo);
+  zmq::context_t ctx;
+  zmq::socket_t socket;
+  long long oFrames;
+  time_t lastProgress;
+  char progMsg[256];
 
  public:
 
@@ -19,6 +27,7 @@ class Spool {
   unsigned int bits_per_sample, sample_rate;
   MemQ *Q;
   bool finished;
+  bool started;
 
   virtual void pushItem(QItem *item);
   virtual void start(char *savePath);

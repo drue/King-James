@@ -155,7 +155,7 @@ void AlsaTPort::doCapture(void *foo)
 
 void AlsaTPort::wait()
 {
-  int n;
+  int n = 0;
   while(n < 1) {
     sem_wait(&finished_sem);
     n++;

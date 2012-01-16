@@ -5,6 +5,7 @@ from time import time
 
 import math
 import os
+import traceback
 
 import zmq
 from zmq.eventloop import ioloop, zmqstream
@@ -15,8 +16,6 @@ from tornadio2 import SocketConnection, TornadioRouter, SocketServer
 import tornado
 from tornado.web import RequestHandler, Application
 import datetime
-
-from dummy import StatusProducer
 
 context = zmq.Context() 
 il = ioloop.IOLoop.instance()
@@ -40,11 +39,20 @@ class Peaks(SocketConnection):
 class Status(SocketConnection):
     def on_open(self, info):
         socket = context.socket(zmq.SUB)
-        socket.connect('inproc://status')
+        socket.connect('ipc:///tmp/progress.ipc')
         socket.setsockopt(zmq.SUBSCRIBE, '')
         stream = zmqstream.ZMQStream(socket, tornado.ioloop.IOLoop.instance())
-        stream.on_recv(self.send)
+        stream.on_recv(self.process)
 
+    def process(self, data):
+        o = []
+        for msg in data:
+            d = json.loads(msg)
+            d['c'] = os.getloadavg()
+            d['r'] = 0
+            o.append(json.dumps(d))
+        if o:
+            self.send(o)
 
 class Ping(SocketConnection):
     def on_open(self, info):
@@ -73,9 +81,6 @@ application = Application(SockRouter.apply_routes([(r"/", IndexHandler)]),
 if __name__ == "__main__":
 
     try:
-        ## dummy status messages
-        il.add_callback(StatusProducer(context).start)
-    
         socketio_server = SocketServer(application)
     finally:
         port.stop()

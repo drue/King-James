@@ -4,14 +4,19 @@
 #include <unistd.h>
 #include <time.h>
 
+#include <zmq.hpp>
+
 #include "spool.h"
 #include "memq.h"
 
-Spool::Spool(unsigned int prerollSize, unsigned int bps, unsigned int sr) {
+Spool::Spool(unsigned int prerollSize, unsigned int bps, unsigned int sr)
+  :  ctx(1), socket(ctx, ZMQ_PUB) {
   Q = new MemQ(prerollSize, 0);
   bits_per_sample = bps;
   sample_rate = sr;
   finished = false;
+  started = false;
+  socket.bind("ipc:///tmp/progress.ipc");
 }
 
 Spool::~Spool() {
@@ -24,13 +29,26 @@ void Spool::finish() {
 }
 
 void Spool::pushItem(QItem *item) {
+  unsigned int bufLength;
+  time_t t;
+
   Q->putTail(item);
+
+  t = time(NULL);
+  if (t - lastProgress >= 1) {
+    bufLength = Q->getSize() * item->frames / sample_rate;
+    sprintf(progMsg, "{\"t\":%lld, \"m\":%d, \"b\":%d}", oFrames/sample_rate, started ? 1 : 0, bufLength);
+    zmq::message_t msg(progMsg, strlen(progMsg), NULL);
+    socket.send(msg);
+    lastProgress = t;
+  }
 }
 
 void Spool::start(char *savePath) {
   filename = (char *)malloc(strlen(savePath));
   strcpy(filename, savePath);
 
+  started = true;
   // start write to disk
   pthread_create(&sthread, NULL, (void * (*)(void *))doWrite, this);
 }
@@ -78,8 +96,11 @@ void Spool::doWrite(void *foo) {
         printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(encoder), 
                FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)]);
       }
+      obj->oFrames += i->frames;
       delete i;
     }
+
+    
     s = obj->Q->getSize();
   } while (s > 0 || (s == 0 && !obj->finished));
 
