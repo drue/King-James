@@ -1,38 +1,62 @@
+#ui {
+    width: 480px;
+    position: relative;
+}
+
 body {
   font-family: Sans-Serif;
 }
 
 img.vuled {
-    width:20px;
-    height:20px;
+    width:22px;
+    height:22px;
     border-width:0px;
 }
 
+#vu {
+    text-align: center; 
+    align: center; 
+    vertical-align: middle;
+    width: 480px;
+}
 .legend {
-    width:15px;
-    height:15px;
-    font-size:9px;
+    width:22px;
+    height:22px;
+    font-size:15px;
+    text-align: center;
 }
 .peak {
     font-size:20px;
 }
 
 #timeElapsed {
+    position: relative;
     float: left;
-    font-size: 34px;
-    padding-left: 5px;
-    margin-top: 8px;
+    font-size: 38px;
+    margin-top: 10px;
+    margin-left: 10px;
+}
+
+#format {
+width:30%;
 }
 
 #signal {
+    position: relative;
+    top: -5px;
+    width: 33%;
     font-size: 14px;
     font-weight: bold;
-    width: 100px;
     text-align: center;
 }
 
 #mode {
-    margin-top:3px;
+    position: relative;
+    top: 12px;
+    margin-left: 10px;
+    width: 41px;
+    height: 41px;
+    float: left
 }
 
 #status {
@@ -41,9 +65,10 @@ img.vuled {
 }
 
 #subStatus {
-    float: left;
+    float: right;
     padding-left: 8px;
-    width: 220px;
+    margin-right: 10px;
+    width: 250px;
 }
 
 .clear {
@@ -63,16 +88,47 @@ img.vuled {
     display: inline-table;
 }
 
-#mode {
-    float:left;
+#buffer {
+    position:relative;
+    width:20%;
+}
+#load {
+    position:relative;
+    text-align: center;
+    width:50%;
 }
 
 .topSubStatus {
-    font-size:22px;
+    font-size:20px;
     margin-bottom:-5px;
-    width: 220px;
+    width: 100%;
 }
 
 .bottomSubStatus {
-    font-size:9px;
+    width:100%
+    font-size:14px;
+}
+
+#reset {
+    width:40px;
+    font-size:12px;
+    text-align:center;
+}
+
+.button {
+	display: inline-block;
+	line-height: 1;
+	padding: 7px 10px;
+	text-decoration: none;
+	font-weight: bold;
+	color: #fff;
+	background-color: #39c;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-khtml-border-radius: 5px;
+	border-radius: 5px;
+    text-align: center;
+}
+input.button, button.button {
+	border: 0px none;
 }

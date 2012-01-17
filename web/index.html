@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+<meta name="viewport" content="width=480" />
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
     <script src="/static/socket.io.js"></script>
     <script src="/static/vu.js"></script>
@@ -8,7 +9,7 @@
     <link rel="stylesheet" type="text/css" href="/static/style.css"/>
     <title>Recorder Status</title>
   </head>
-  <body>
+  <body   bgcolor="#BDBDBD">
     <div id="ui">
       <div id="status">
         <form action="javascript:true;" id="modeform">
@@ -29,21 +30,22 @@
         <div id="subStatus">
           <div class="topSubStatus">
             <span id="format" class="left">24/88</span>
-            <span id="signal" class="center">NO SIGNAL</span>
-            <span id="timeLeft" class="right"></span>
+           <span id="signal" class="center">NO SIGNAL</span>
+           <span id="timeLeft" class="right"></span>
             <div class="clear"></div>
           </div>
           <hr/>
           <div class="bottomSubStatus">
-            <span id="load" class="left"></span>
-            <span id="buffer" class="center"></span>
-            <span id="ping" class="right"></span>
+            <span id="buffer" class="left"></span>
+            <span id="load" class="center"></span>
+           <span id="ping" class="right"></span>
           </div>
         </div>
         <div class="clear"></div>
       </div>
       <div id="vu" class="left">
-        <table style="text-align: center; align: center; vertical-align: middle;"><tr>
+        <center>
+        <table><tr>
           <td> <img class="vuled" id="l48" src="/static/black_led.png"></td>
           <td> <img class="vuled" id="l42" src="/static/black_led.png"></td>
           <td> <img class="vuled" id="l36" src="/static/black_led.png"></td>
@@ -63,22 +65,22 @@
           <td>   <div class="peak" id="maxL"></div></td>
         </tr>
         <tr>
-          <td>-48</td>
-          <td>-42</td>
-          <td>-36</td>
-          <td>-30</td>
-          <td>-24</td>
-          <td>-18</td>
-          <td>-15</td>
-          <td>-12</td>
-          <td>-9</td>
-          <td>-6</td>
-          <td>-5</td>
-          <td>-4</td>
-          <td>-3</td>
-          <td>-2</td>
-          <td>-1</td>
-          <td>FSD</td>
+          <td class="legend">-48</td>
+          <td class="legend">-42</td>
+          <td class="legend">-36</td>
+          <td class="legend">-30</td>
+          <td class="legend">-24</td>
+          <td class="legend">-18</td>
+          <td class="legend">-15</td>
+          <td class="legend">-12</td>
+          <td class="legend">-9</td>
+          <td class="legend">-6</td>
+          <td class="legend">-5</td>
+          <td class="legend">-4</td>
+          <td class="legend">-3</td>
+          <td class="legend">-2</td>
+          <td class="legend">-1</td>
+          <td class="legend">FSD</td>
           <td>
             <form action="javascript:true;" id="resetPeaksForm">
             <script type="text/javascript">
@@ -92,7 +94,7 @@
             });
             return false;
             });</script>
-            <input type="submit" id="reset" value="RS"/>
+            <input type="submit" id="reset" class="button" value="RS"/>
             </form>
           </td>
         </tr>
@@ -116,6 +118,7 @@
           <td>   <div class="peak" id="maxR"></div></td>
         </tr>
       </table>
+      <center>
     </div>
   </div>
 </body>
