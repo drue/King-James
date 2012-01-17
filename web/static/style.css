@@ -27,6 +27,8 @@ img.vuled {
 }
 .peak {
     font-size:20px;
+    text-align: center;
+    vertical-align: middle;
 }
 
 #timeElapsed {
@@ -110,25 +112,21 @@ width:30%;
 }
 
 #reset {
-    width:40px;
+    width:35px;
     font-size:12px;
-    text-align:center;
 }
 
 .button {
 	display: inline-block;
 	line-height: 1;
-	padding: 7px 10px;
+	padding: 5px 5px;
 	text-decoration: none;
 	font-weight: bold;
 	color: #fff;
-	background-color: #39c;
+	background-color: #81A1F8;
 	-moz-border-radius: 5px;
 	-webkit-border-radius: 5px;
 	-khtml-border-radius: 5px;
 	border-radius: 5px;
     text-align: center;
-}
-input.button, button.button {
-	border: 0px none;
 }
