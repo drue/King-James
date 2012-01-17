@@ -14,6 +14,7 @@ Meter::Meter(MemQ *aQ, Spool *aSpool) {
   finished = false;
   Q = aQ;
   spool = aSpool;
+  amax = bmax = 0;
 
   pthread_mutex_init(&maxLock, NULL);
   pthread_mutex_init(&spoolLock, NULL);
