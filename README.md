@@ -51,7 +51,7 @@ Status
 
 * 2012-01-17 - Basic software is done and ready for some hardware to
 test on.  Still needs recipes and scripts for cross-compiling and
-building disk images.  Also needs some configuration stuff, file
+building disk images.  Also needs some configuration, file
 renaming, better error handling, and maybe a Winky-Blinkie inspired
 stereo phase meter.
 

@@ -1,115 +1,23 @@
 #!/usr/bin/env python
 
-import json
-from time import time
-
-import math
-import os
-import traceback
-
-import zmq
-from zmq.eventloop import ioloop, zmqstream
-from zmq.devices.basedevice import ThreadDevice
-
+from zmq.eventloop import ioloop
 ioloop.install()
+
+import os
 
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer
 import tornado
 from tornado.web import RequestHandler, Application
-import datetime
 
-from const import *
+from core import port
 
-context = zmq.Context() 
-il = ioloop.IOLoop.instance()
-
-## bind a forwarder here so multiple spools can connect without conflict
-pr = ThreadDevice(zmq.FORWARDER, zmq.SUB, zmq.PUB)
-pr.bind_in('ipc:///tmp/progressIn.ipc')
-pr.bind_out('ipc:///tmp/progressOut.ipc')
-pr.setsockopt_in(zmq.SUBSCRIBE, '')
-pr.start()
-
-mode = STOPPED
-n = 0
-
-depth = 24
-rate = 48000
-card = 1
-comp_ratio = .65
-
-import transport
-port = transport.newTPort(card, depth, rate)
+from commands import RecordHandler, ResetPeaksHandler
+from status import Peaks, Status, Ping
 
 try:
     class IndexHandler(RequestHandler):
         def get(self):
             self.render('index.html')
-
-    class RecordHandler(RequestHandler):
-        def newFile(self):
-            global n
-            n+= 1
-            return "recording%s.flac" % n
-
-        def post(self):
-            global mode
-            if mode == STOPPED:
-                port.startRecording(self.newFile())
-                mode = RECORDING
-            else:
-                port.stopRecording()
-                mode = STOPPED
-
-    class ResetPeaksHandler(RequestHandler):
-        def post(self):
-            port.resetPeaks()
-
-    class Peaks(SocketConnection):
-        def on_open(self, info):
-            self.socket = context.socket(zmq.SUB)
-            self.socket.connect('ipc:///tmp/peaks.ipc')
-            self.socket.setsockopt(zmq.SUBSCRIBE, '')
-            stream = zmqstream.ZMQStream(self.socket, tornado.ioloop.IOLoop.instance())
-            stream.on_recv(self.send)
-
-    class Status(SocketConnection):
-        remaining = 0
-        rTime = 0
-        def on_open(self, info):
-            self.socket = context.socket(zmq.SUB)
-            self.socket.connect('ipc:///tmp/progressOut.ipc')
-            self.socket.setsockopt(zmq.SUBSCRIBE, '')
-            self.stream = zmqstream.ZMQStream(self.socket, tornado.ioloop.IOLoop.instance())
-            self.stream.on_recv(self.process)
-
-        def on_close(self):
-            self.stream.close()
-            self.socket.close()
-            
-        def process(self, data):
-            o = []
-            if (time() - Status.rTime > 30):
-                stat = os.statvfs('.')
-                Status.remaining = (stat.f_bsize * stat.f_bavail) / ((depth / 8) * rate * comp_ratio)
-                Status.rTime = time()
-
-            for msg in data:
-                d = json.loads(msg)
-                d['c'] = os.getloadavg()
-                d['r'] = Status.remaining
-                d['s'] = port.gotSignal()
-                d['f'] = "%s/%s" % (depth, str(rate)[:2])
-                o.append(json.dumps(d))
-            if o:
-                self.send(o)
-
-    class Ping(SocketConnection):
-        def on_message(self, message):
-            now = datetime.datetime.now()
-
-            message['server'] = [now.hour, now.minute, now.second, now.microsecond / 1000]
-            self.send(message)
 
 
     class RouterConnection(SocketConnection):
