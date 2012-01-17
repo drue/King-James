@@ -20,6 +20,7 @@ Features
 * HTML/Javascript interface that works on iOS or Android
 * good level meters with peak hold
 
+![screenshot running in iOS simulator](https://github.com/drue/King-James/raw/master/screenshot.png "screenshot")
 
 History
 -------
@@ -34,9 +35,6 @@ to that.  I used that recorder for a few years but eventually I
 switched to a commercial handheld because it was much smaller and
 lighter.
 
-Future
-------
-
 The handheld commercial units available today all have issues.  Only
 two have digital inputs.  One is a piece of crap and the other
 wastes space and budget on built-in mics that I'm not too keen on.
@@ -46,3 +44,13 @@ in handy.
 Now with SBCs like Raspberry-Pi and BeagleBone, I can make a better
 recorder for my purposes without compromising on size or price.  I
 particularly want remote control via my phone.
+
+
+Status
+------
+
+2011-01-17 - Basic software is done and ready for some hardware to
+test on.  Still needs recipes and scripts for cross-compiling and
+building disk images.  Also needs some configuration stuff, file
+renaming, better error handling, and maybe a Winky-Blinkie inspired
+stereo phase meter.
