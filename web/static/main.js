@@ -43,6 +43,8 @@ $(function() {
 
                 $('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
 
+                $('#signal').html(s.s ? "LOCKED" : "NO SIGNAL");
+                
                 if (s.m == 0) {
                   $('#mode').attr('src', '/static/paused.png');
                 }

@@ -93,10 +93,12 @@ try:
                 stat = os.statvfs('.')
                 Status.remaining = (stat.f_bsize * stat.f_bavail) / ((depth / 8) * rate * comp_ratio)
                 Status.rTime = time()
+
             for msg in data:
                 d = json.loads(msg)
                 d['c'] = os.getloadavg()
                 d['r'] = Status.remaining
+                d['s'] = port.gotSignal()
                 d['f'] = "%s/%s" % (depth, str(rate)[:2])
                 o.append(json.dumps(d))
             if o:
