@@ -49,8 +49,10 @@ particularly want remote control via my phone.
 Status
 ------
 
-2011-01-17 - Basic software is done and ready for some hardware to
+* 2012-01-17 - Basic software is done and ready for some hardware to
 test on.  Still needs recipes and scripts for cross-compiling and
 building disk images.  Also needs some configuration stuff, file
 renaming, better error handling, and maybe a Winky-Blinkie inspired
 stereo phase meter.
+
+* 2012-01-02 - King-James project begins again with ancient codebase.
