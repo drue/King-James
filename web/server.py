@@ -105,9 +105,6 @@ try:
                 self.send(o)
 
     class Ping(SocketConnection):
-        def on_open(self, info):
-            print 'Ping', repr(info)
-
         def on_message(self, message):
             now = datetime.datetime.now()
 
