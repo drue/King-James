@@ -7,7 +7,7 @@ setup(name='transport',
       description='James Transport Module',
       author='Andrew Loewenstern',
       author_email='drue@gigagig.org',
-      ext_modules=[Extension('transport', ['transport.cc', 'spool.cc', 'meter.cc', 'memq.cc', 'port.cc', 'tportmodule.cc'],
+      ext_modules=[Extension('transport', ['Transport.cc', 'spool.cc', 'meter.cc', 'memq.cc', 'port.cc', 'tportmodule.cc'],
                                libraries=['FLAC','asound', 'zmq'],
                                define_macros=[('DEBUG', None), ('_LARGEFILE64_SOURCE', None)]
      )])
