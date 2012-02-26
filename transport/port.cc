@@ -266,9 +266,11 @@ int APort::readIntoBuf(FLAC__int32 *buf, ssize_t count)
       r = snd_pcm_readi(handle, (void *)buf + (result * 8), count);
       if (r == -EAGAIN || (r >= 0 && r < count)) {
         snd_pcm_wait(handle, 1000);
-      } else if (r == -EPIPE) {
+      }
+      else if (r == -EPIPE) {
         xrun();
-      } else if (r == -ESTRPIPE){
+      } 
+      else if (r == -ESTRPIPE){
         while ((r = snd_pcm_resume(handle)) == -EAGAIN)
           usleep(1000);	/* wait until suspend flag is released */
         if (res < 0) {

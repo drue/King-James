@@ -18,9 +18,8 @@ Spool::Spool(unsigned int prerollSize, unsigned int bps, unsigned int sr)
   finished = false;
   started = false;
   oFrames = 0;
-  aFrames = 0;
-  lastProgress = 0
-;
+  aFrames = 0; 
+  lastProgress = 0;
   socket.connect("ipc:///tmp/progressIn.ipc");
 }
 
