@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <algorithm>
 
 #include <zmq.hpp>
 
@@ -10,37 +11,39 @@
 
 #define DECAY 1700
 
-Meter::Meter(MemQ *aQ, Spool *aSpool) {
+Meter::Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t **qs, Spool *aSpool, pthread_mutex_t l, pthread_cond_t c) {
   finished = false;
-  Q = aQ;
+  rings = qs;
   spool = aSpool;
-  amax = bmax = 0;
-
+  this->chans = chans;
+  max = (FLAC__int32*)malloc(sizeof(FLAC__int32*) * chans);
+  prev = (FLAC__int32*)malloc(sizeof(FLAC__int32*) * chans);
+  for(unsigned i=0;i < chans;i++)
+    max[i] = prev[i] = 0;
+ 
   pthread_mutex_init(&maxLock, NULL);
-  pthread_mutex_init(&spoolLock, NULL);
+  lock = l;
+  cond = c;
+  rate = sample_rate;
 
   pthread_create(&sthread, NULL, (void * (*)(void *))run, this);
- 
+  
+}
+
+Meter::~Meter() {
+  free (max);
+  free (prev);
 }
 
 void Meter::switchSpool(Spool *newSpool) {
   spool = newSpool;
 }
 
-long Meter::getmaxa() 
+long Meter::getmaxn(unsigned int n) 
 {
   long ret;
   pthread_mutex_lock(&maxLock);
-  ret = amax;
-  pthread_mutex_unlock(&maxLock);
-  return ret;
-}
-
-long Meter::getmaxb() 
-{
-  long ret;
-  pthread_mutex_lock(&maxLock);
-  ret = bmax;
+  ret = max[n];
   pthread_mutex_unlock(&maxLock);
   return ret;
 }
@@ -48,7 +51,9 @@ long Meter::getmaxb()
 void  Meter::resetmax() 
 {
   pthread_mutex_lock(&maxLock);
-  amax = bmax = 0;
+  for(unsigned i=0;i<chans;i++) {
+    max[i] = 0;
+  }
   pthread_mutex_unlock(&maxLock);
 }
 
@@ -58,60 +63,104 @@ float todBFS(FLAC__int32 sample)  {
 
 void Meter::run(void *foo) {
   Meter *obj = (Meter *)foo;
-  unsigned ws;
-  FLAC__int32 tMaxA, tMaxB;
-  QItem *i;
+  unsigned is;
+  FLAC__int32 tMax[obj->chans];
+  unsigned int frames;
+  unsigned int ws;
   zmq::context_t ctx(1);
   zmq::socket_t socket(ctx, ZMQ_PUB);
   struct timespec ts;
 
+  
   socket.bind("ipc:///tmp/peaks.ipc");
 
-  char str[256];
-  int err;
-  int millis;
-  int decay;
-  FLAC__int32 prevA = 0;
-  FLAC__int32 prevB = 0;
+  jack_ringbuffer_data_t regions[obj->chans][2];
+  QItem *o = obj->spool->getEmpty();
+
+  for(unsigned i=0;i<obj->chans;i++)
+    tMax[i] = 0;
+
+  pthread_mutex_lock(&obj->lock);
 
   while(1) {
-    // get QItem from Q
     clock_gettime(CLOCK_REALTIME, &ts) ;
     ts.tv_nsec += 100000000;
-    i = obj->Q->getHead(&ts);
-    if (i != NULL) {
-    
-      ws = tMaxA = tMaxB = 0;
-    
-      while (ws < i->frames * 2) {
-        // find peaks
-        if (abs(i->buf[ws]) > tMaxA) tMaxA = abs(i->buf[ws]);
-        if (abs(i->buf[ws+1]) > tMaxB) tMaxB = abs(i->buf[ws+1]);
-        ws+= 2;
-      }
-    
-      millis = i->frames * 1000 / 46500;
-      decay = 8388608 * millis / DECAY;
-
-      pthread_mutex_lock(&obj->maxLock);	
-      if (tMaxA > obj->amax) obj->amax = tMaxA;
-      if (tMaxB > obj->bmax) obj->bmax = tMaxB;
-
-      if(tMaxA < (prevA - decay))
-        tMaxA = prevA - decay;
-      if(tMaxB < (prevB - decay))
-        tMaxB = prevB - decay;
-
-      prevA = tMaxA;
-      prevB = tMaxB;
-
-      sprintf(str, "[%.0f, %.0f, %.0f, %.0f]", todBFS(tMaxA),  todBFS(tMaxB), todBFS(obj->amax),  todBFS(obj->bmax));
-      pthread_mutex_unlock(&obj->maxLock);
-      
-      obj->spool->pushItem(i);
-
-      zmq::message_t msg(str, strlen(str), NULL);
-      socket.send(msg);
+    jack_ringbuffer_get_read_vector(obj->rings[0], regions[0]);
+    size_t size = regions[0][0].len + regions[0][1].len;
+    for(unsigned i =1; i < obj->chans;i++) {
+      jack_ringbuffer_get_read_vector(obj->rings[i], regions[i]);
+      size = std::min(size, regions[i][0].len + regions[i][1].len);
     }
+
+    frames = size / sizeof(float);
+
+    for(unsigned i=0;i < obj->chans;i++)
+      tMax[i] = 0;
+
+    is = 0;
+    for(unsigned i=0;i < frames;i++) {
+      for(unsigned c=0;c < obj->chans;c++) {
+        int n;
+        ws = o->frames * obj->chans * sizeof(float);
+        if(is < regions[c][0].len)
+          n = 0;
+        else
+          n = 1;
+        o->buf[ws] = (FLAC__int32)((float)*(regions[c][n].buf + is) * 8388607); //xxx
+
+        if (abs(o->buf[ws]) > tMax[c]) 
+          tMax[c] = abs(o->buf[ws]);
+        ws += sizeof(float);
+        is += sizeof(float);
+      }
+
+      o->frames += 1;
+
+      if (o->frames * obj->chans * sizeof(float) == o->bufsize) {
+        obj->shipItem(o, tMax, &socket);
+        o = obj->spool->getEmpty();
+        for(unsigned i=0;i<obj->chans;i++)
+          tMax[i] = 0;
+      }    
+    }
+    pthread_cond_wait (&obj->cond, &obj->lock);
   }
+  pthread_mutex_unlock(&obj->lock);
+}
+
+void Meter::shipItem(QItem*item, FLAC__int32*tMax, zmq::socket_t *socket) {
+  int millis;
+  int decay;
+  char str[1024] = "";
+  char tmp[64];
+
+  millis = item->frames * 1000 / rate;
+  decay = 8388608 * millis / DECAY;
+
+  pthread_mutex_lock(&maxLock);	
+  for(unsigned i=0;i < chans;i++) {
+    if (tMax[i] > max[i]) 
+      max[i] = tMax[i];
+    if(tMax[i] < (prev[i] - decay))
+        tMax[i] = prev[i] - decay;
+      prev[i] = tMax[i];
+  }
+  
+  strcat(str, "[");
+  for(unsigned i=0;i< chans;i++) {
+    sprintf(tmp, "%.0f,", todBFS(tMax[i]));
+    strcat(str, tmp);
+  }
+  for(unsigned i=0;i< chans;i++) {
+    sprintf(tmp, "%.0f", todBFS(max[i]));
+    strcat(str, tmp);
+    if (i + 1 < chans)
+      strcat(str, ",");
+  }
+  pthread_mutex_unlock(&maxLock);
+  
+  spool->pushItem(item);
+  
+  zmq::message_t msg(str, strlen(str), NULL);
+  socket->send(msg);
 }

@@ -10,9 +10,9 @@
 #include "spool.h"
 #include "memq.h"
 
-Spool::Spool(unsigned int prerollSize, unsigned int bps, unsigned int sr)
+Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr)
   :  ctx(1), socket(ctx, ZMQ_PUB) {
-  Q = new MemQ(prerollSize, 0);
+  Q = new MemQ(prerollSize, bufSize);
   bits_per_sample = bps;
   sample_rate = sr;
   finished = false;
@@ -30,6 +30,10 @@ Spool::~Spool() {
 
 void Spool::finish() {
   finished = true;
+}
+
+QItem *Spool::getEmpty() {
+  return Q->getEmpty();
 }
 
 void Spool::pushItem(QItem *item) {

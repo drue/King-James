@@ -12,8 +12,8 @@
 #include <pthread.h>
 
 #define PERIOD 256
-#define PERIODS 20
-#define BUFFER PERIOD * PERIODS
+#define PERIODS 2
+#define BUFFER 131072
 
 APort::APort(){};
 
@@ -64,30 +64,44 @@ APort::APort(int direction, unsigned int card, unsigned int bits_per_sample, uns
   x = 0;
   sample_rate = snd_pcm_hw_params_set_rate_near(handle, parms, &sample_rate, &x);
     
-  /*    if ((err = snd_pcm_hw_params_set_period_size (handle, parms, 8, 0)) < 0) {
-        printf("Can't set periods to 8.\n");
-        }
 
-    
-        if (period_time < 0)
-        period_time = buffer_time;    
-        period_time = snd_pcm_hw_params_set_period_size(handle, parms,
-        PERIOD, 0);
-        #ifdef DEBUG
-        assert(period_time >= 0);
-        printf("period_time: %d\n", period_time);
-        #endif
+  err = snd_pcm_hw_params_get_buffer_time_max(parms, &buffer_time, 0);
+  if (err < 0) {
+    printf("couldn't get buffer time %s\n", snd_strerror(err));
+  }
+  if (buffer_time > 500000)
+    buffer_time = 500000;
+  unsigned int period_time = buffer_time / 4;
+  err = snd_pcm_hw_params_set_period_time_near(handle, parms,
+                                               &period_time, 0);
+  err = snd_pcm_hw_params_set_buffer_time_near(handle, parms,
+                                               &buffer_time, 0);
 
-        buffer_time = snd_pcm_hw_params_set_buffer_size(handle, parms, BUFFER);
-        #ifdef DEBUG
-        assert(buffer_time >= 0);
-        printf("buffer_time: %d\n", buffer_time);
-        #endif
+  /*  if ((err = snd_pcm_hw_params_set_period_size (handle, parms, PERIOD, 0)) < 0) {
+    printf("Can't set periods to %d.\n", PERIOD);
+  }
+  
+  
+  if (period_time < 0)
+    period_time = buffer_time;    
+  period_time = snd_pcm_hw_params_set_period_size(handle, parms,
+                                                  PERIOD, 0);
   */
-    
+
+  
+#ifdef DEBUG
+  assert(period_time >= 0);
+  printf("period_time: %d\n", period_time);
+#endif
+  
+#ifdef DEBUG
+  assert(buffer_time >= 0);
+  printf("buffer_time: %d\n", buffer_time);
+#endif
+      
   err = snd_pcm_hw_params(handle, parms);
 
-  snd_pcm_hw_params_get_period_size(parms, &period_time, 0);
+  //  snd_pcm_hw_params_get_period_size(parms, &period_time, 0);
   bits_per_sample = snd_pcm_format_physical_width(format);
   bits_per_frame = bits_per_sample * 2;
   period_bytes =  period_time * (bits_per_frame) / 8;

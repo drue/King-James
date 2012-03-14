@@ -10,6 +10,14 @@ package "libzmq-dev"
 package "libevent-dev"
 package "gdb"
 package "htop"
+package "jackd"
+package "libjack-dev"
+package "jack-tools"
+
+file "/etc/jackdrc" do
+  content "/usr/bin/jackd  -Z -d alsa -d hw:miniStreamer -C -n 24"
+end
+
 
 python_pip "pyzmq" do
   action :install

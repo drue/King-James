@@ -3,6 +3,9 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#include <jack/types.h>
+#include <jack/ringbuffer.h>
+
 #include "port.h"
 #include "memq.h"
 #include "spool.h"
@@ -11,8 +14,16 @@
 
 class Transport {
  public:
-  virtual void stop();
   virtual void startRecording(char *path);
+  // just stop recording to above file
+  virtual void stopRecording();
+  // stop everything, including preroll
+  virtual void stop();
+  virtual void wait();
+
+  long getmaxa();
+  long getmaxb();
+  void resetmax();
 };
 
 class AlsaTPort: public Transport {
@@ -23,13 +34,21 @@ class AlsaTPort: public Transport {
 
   bool stop_flag;
   int bits_per_sample, sample_rate;
-  APort *pla;
-  APort *cap;
   unsigned int prerollSize;
-  unsigned int aligned_buffer_size;
   pthread_t cthread;
   static void doCapture(void *foo);
+  static int process(jack_nframes_t nframes, void *user);
+
   void doReturn();
+
+  jack_client_t *client;
+  jack_port_t **ports;
+  jack_ringbuffer_t **rings;
+  jack_default_audio_sample_t **in;
+  pthread_mutex_t meter_lock;
+  pthread_cond_t  data_ready;
+
+  unsigned long overruns;
 
  public:
   sem_t finished_sem;
@@ -40,8 +59,9 @@ class AlsaTPort: public Transport {
   virtual void stop();
   virtual void wait();
   virtual int gotSignal();
-  long getmaxa();
-  long getmaxb();
+  long getmaxn(unsigned int n);
   void resetmax();
     
 };
+
+

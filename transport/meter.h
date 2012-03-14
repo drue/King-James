@@ -1,26 +1,34 @@
 #include <pthread.h>
 #include <FLAC/all.h>
+#include <jack/ringbuffer.h>
+#include <zmq.hpp>
 
 #include "spool.h"
-#include "memq.h"
 
 class Meter {
  protected:
   pthread_t sthread;
-  static void run(void *foo);
   pthread_t cthread;
   bool finished;
-
- public:
-  MemQ *Q;
+  pthread_mutex_t lock;
+  pthread_cond_t cond;
+  unsigned int chans;
+  unsigned int rate;
+  jack_ringbuffer_t **rings;
   Spool *spool;
   pthread_mutex_t maxLock;
-  pthread_mutex_t spoolLock;
-  FLAC__int32 amax, bmax;
+  FLAC__int32 *max;
+  FLAC__int32 *prev;
 
-  Meter(MemQ *aQ, Spool *aSpool);
-  long getmaxa();
-  long getmaxb();
+
+  static void run(void *foo);
+  void shipItem(QItem*i, FLAC__int32*tMax, zmq::socket_t *socket);
+
+ public:
+  virtual ~Meter();
+
+  Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t **qs, Spool *aSpool, pthread_mutex_t lock, pthread_cond_t cond);
+  long getmaxn(unsigned int n);
   void resetmax();
   void switchSpool(Spool *newSpool);
 };

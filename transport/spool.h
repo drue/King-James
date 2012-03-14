@@ -22,7 +22,7 @@ class Spool {
 
  public:
 
-  Spool(unsigned int prerollSize, unsigned int bps, unsigned int sr);
+  Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr);
   ~Spool();
   char *filename;
   unsigned int bits_per_sample, sample_rate;
@@ -31,6 +31,7 @@ class Spool {
   bool started;
 
   virtual void pushItem(QItem *item);
+  virtual QItem *getEmpty();
   virtual void start(char *savePath);
   virtual void finish();
 };
