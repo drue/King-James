@@ -5,10 +5,10 @@
 
 typedef struct {
   PyObject_HEAD
-  JackTPort	*tport;		/* the context holder */
-} PyJackTPort;
+  AlsaTPort	*tport;		/* the context holder */
+} PyAlsaTPort;
 
-static PyObject *tport_getattr(PyJackTPort *tp, char *name);
+static PyObject *tport_getattr(PyAlsaTPort *tp, char *name);
 static PyObject *newTPort(PyObject *self, PyObject *args);
 static PyObject *tport_stop(PyObject *self, PyObject *args);
 static PyObject *tport_stop_recording(PyObject *self, PyObject *args);
@@ -17,20 +17,20 @@ static PyObject *tport_wait(PyObject *self, PyObject *args);
 static PyObject *tport_got_signal(PyObject *self, PyObject *args);
 static PyObject *tport_get_peaks(PyObject *self, PyObject *args);
 static PyObject *tport_reset_peaks(PyObject *self, PyObject *args);
-static void tport_dealloc(PyJackTPort *tport);
-static PyObject *tport_getattr(PyJackTPort *self, char *args);
+static void tport_dealloc(PyAlsaTPort *tport);
+static PyObject *tport_getattr(PyAlsaTPort *self, char *args);
 
-#define is_tport(v)		((v)->ob_type == &PyJackTPort)
+#define is_tport(v)		((v)->ob_type == &PyAlsaTPort)
 
 static char* members[] = {
   NULL
 };
 
-static PyTypeObject JackTPortType = {
+static PyTypeObject AlsaTPortType = {
   PyObject_HEAD_INIT(NULL)
   0,				     /*ob_size*/
-  "JackTPort",			     /*tp_name*/
-  sizeof(PyJackTPort),		     /*tp_size*/
+  "AlsaTPort",			     /*tp_name*/
+  sizeof(PyAlsaTPort),		     /*tp_size*/
   0,				     /*tp_itemsize*/
   /* methods */
   (destructor)tport_dealloc,	     /*tp_dealloc*/
@@ -53,7 +53,7 @@ static struct PyMethodDef tport_methods[] = {
   {NULL,		NULL}		/* sentinel */
 };
 
-static PyObject *tport_getattr(PyJackTPort *tp, char *name)
+static PyObject *tport_getattr(PyAlsaTPort *tp, char *name)
 {
   if (strcmp(name, "__members__") == 0) {
     int i = 0;
@@ -81,17 +81,17 @@ static PyObject *tport_getattr(PyJackTPort *tp, char *name)
 
 static PyObject *newTPort(PyObject *self, PyObject *args)
 {
-  PyJackTPort *tport;
+  PyAlsaTPort *tport;
   unsigned int card, bps, sr;
     
   if (!PyArg_ParseTuple(args, "III", &card, &bps, &sr))
 	return NULL;
 
-  tport = (PyJackTPort *)PyObject_New(PyJackTPort, &JackTPortType);
+  tport = (PyAlsaTPort *)PyObject_New(PyAlsaTPort, &AlsaTPortType);
   if (tport == NULL)
     return NULL;
 
-  tport->tport = new JackTPort(bps, sr);
+  tport->tport = new AlsaTPort(card, bps, sr);
         
   return (PyObject *)tport;
 }
@@ -101,7 +101,7 @@ static PyObject *tport_start(PyObject *self, PyObject *args)
   char *path;
   if (!PyArg_ParseTuple(args, "s", &path))
 	return NULL;
-  ((PyJackTPort*)self)->tport->startRecording(path);
+  ((PyAlsaTPort*)self)->tport->startRecording(path);
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -109,7 +109,7 @@ static PyObject *tport_start(PyObject *self, PyObject *args)
 
 static PyObject *tport_stop(PyObject *self, PyObject *args)
 {
-  ((PyJackTPort*)self)->tport->stop();
+  ((PyAlsaTPort*)self)->tport->stop();
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -117,7 +117,7 @@ static PyObject *tport_stop(PyObject *self, PyObject *args)
 
 static PyObject *tport_stop_recording(PyObject *self, PyObject *args)
 {
-  ((PyJackTPort*)self)->tport->stopRecording();
+  ((PyAlsaTPort*)self)->tport->stopRecording();
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -125,31 +125,31 @@ static PyObject *tport_stop_recording(PyObject *self, PyObject *args)
 
 static PyObject *tport_wait(PyObject *self, PyObject *args)
 {
-  ((PyJackTPort*)self)->tport->wait();   
+  ((PyAlsaTPort*)self)->tport->wait();   
   Py_INCREF(Py_None);
   return Py_None;
 }
 
 static PyObject *tport_got_signal(PyObject *self, PyObject *args)
 {
-  return  Py_BuildValue("i", ((PyJackTPort*)self)->tport->gotSignal());
+  return  Py_BuildValue("i", ((PyAlsaTPort*)self)->tport->gotSignal());
 }
 
 static PyObject *tport_get_peaks(PyObject *self, PyObject *args)
 {
   return  Py_BuildValue("(l,l)", 
-                        ((PyJackTPort*)self)->tport->getmaxa(),  
-                        ((PyJackTPort*)self)->tport->getmaxb());
+                        ((PyAlsaTPort*)self)->tport->getmaxa(),  
+                        ((PyAlsaTPort*)self)->tport->getmaxb());
 }
 
 static PyObject *tport_reset_peaks(PyObject *self, PyObject *args)
 {
-  ((PyJackTPort*)self)->tport->resetmax();
+  ((PyAlsaTPort*)self)->tport->resetmax();
   Py_INCREF(Py_None);
   return Py_None;
 }
 
-static void tport_dealloc(PyJackTPort *tport)
+static void tport_dealloc(PyAlsaTPort *tport)
 {
   delete(tport->tport);
   PyObject_Del(tport);
