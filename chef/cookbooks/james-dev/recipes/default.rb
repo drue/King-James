@@ -10,8 +10,8 @@ package "libzmq-dev"
 package "libevent-dev"
 package "gdb"
 package "htop"
-package "jackd"
-package "libjack-dev"
+package "jackd2"
+package "libjack-jackd2-dev"
 package "jack-tools"
 
 file "/etc/jackdrc" do

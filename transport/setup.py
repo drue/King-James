@@ -8,7 +8,7 @@ setup(name='transport',
       author='Andrew Loewenstern',
       author_email='drue@gigagig.org',
 ext_modules=[Extension('transport', ['Transport.cc', 'spool.cc', 'meter.cc', 'memq.cc', 'tportmodule.cc'],
-                               libraries=['FLAC','asound', 'zmq'],
+libraries=['FLAC','asound', 'zmq', 'jack'],
                                define_macros=[('DEBUG', None), ('_LARGEFILE64_SOURCE', None)]
      )])
 

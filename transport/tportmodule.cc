@@ -137,9 +137,12 @@ static PyObject *tport_got_signal(PyObject *self, PyObject *args)
 
 static PyObject *tport_get_peaks(PyObject *self, PyObject *args)
 {
-  return  Py_BuildValue("(l,l)", 
-                        ((PyAlsaTPort*)self)->tport->getmaxa(),  
-                        ((PyAlsaTPort*)self)->tport->getmaxb());
+  int chans = ((PyAlsaTPort*)self)->tport->channels;
+  PyObject *l = PyTuple_New(chans);
+  for (int i= 0;i<chans;i++) {
+    PyTuple_SetItem(l, i, PyInt_FromLong(((PyAlsaTPort*)self)->tport->getmaxn(i)));
+  }
+  return  l;
 }
 
 static PyObject *tport_reset_peaks(PyObject *self, PyObject *args)
