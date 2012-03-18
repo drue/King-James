@@ -106,6 +106,7 @@ void *AlsaTPort::process(void *user)
   snd_pcm_uframes_t n;
   jack_ringbuffer_data_t writevec[2];
   struct sched_param schp;
+  //long stupid[7000 * 2];
 
   memset(&schp, 0, sizeof(schp));
   schp.sched_priority = sched_get_priority_max(SCHED_FIFO);
@@ -121,7 +122,10 @@ void *AlsaTPort::process(void *user)
     while(avail > 0) {
       jack_ringbuffer_get_write_vector(tport->ring, writevec);
       n = std::min((int)writevec[0].len / SAMPLE_SIZE / tport->channels, (int)avail);
+      //n = std::min((snd_pcm_sframes_t)7000, avail);
       r = snd_pcm_readi(tport->handle, writevec[0].buf, n);
+      //r = snd_pcm_readi(tport->handle, stupid, n);
+      //jack_ringbuffer_write(tport->ring, (const char *)stupid, r*8);
       if (r == -EPIPE) {
         tport->xrun();
       } else if (r == -ESTRPIPE) {
@@ -133,7 +137,7 @@ void *AlsaTPort::process(void *user)
       else {
         got += r;
         avail -= r;
-        
+
         if (avail && ((r * SAMPLE_SIZE * tport->channels) == writevec[0].len)) {
           r = snd_pcm_readi(tport->handle, writevec[1].buf, writevec[1].len / SAMPLE_SIZE / tport->channels);
           if (r == -EPIPE) {
@@ -152,7 +156,7 @@ void *AlsaTPort::process(void *user)
       }
       avail = snd_pcm_avail_update(tport->handle);
     }
-    if (got && pthread_mutex_trylock (&(tport->meter_lock)) == 0) {
+    if (got && (pthread_mutex_trylock (&(tport->meter_lock)) == 0)) {
       pthread_cond_signal (&(tport->data_ready));
       pthread_mutex_unlock (&(tport->meter_lock));
       got = 0;
@@ -181,7 +185,7 @@ AlsaTPort::AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int samp
   this->channels = 2;
   this->process_flag = 0;
  
-  sprintf(cardString, "plughw:%s,0", card);
+  sprintf(cardString, "plughw:%s", card);
 
 
   err=snd_pcm_open(&(handle), cardString, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
@@ -225,6 +229,7 @@ AlsaTPort::AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int samp
     exit(-1);
   }
 
+  printf("state: %d\n", snd_pcm_status_get_state(status));
 #ifdef DEBUG
   printf("ready...\n");
 #endif
@@ -258,6 +263,7 @@ void AlsaTPort::setup() {
     
   snd_pcm_hw_params_set_channels(handle, params, channels);
 
+
   snd_pcm_hw_params_set_rate_near(handle, params, &rate, 0);
 
   snd_pcm_hw_params_get_buffer_time_max(params, &buffer_time, 0);
@@ -289,9 +295,11 @@ void AlsaTPort::setup() {
   snd_pcm_sw_params_current(handle, swparams);
 
   snd_pcm_sw_params_set_avail_min(handle, swparams, chunk_size);
-  snd_pcm_sw_params_set_start_threshold(handle, swparams, 1);
-    
-  snd_pcm_sw_params_set_stop_threshold(handle, swparams, buffer_size);
+  snd_pcm_sw_params_set_start_threshold(handle, swparams, 0);
+  
+  //  err = snd_pcm_sw_params_set_xfer_align(handle, swparams, 4);
+
+  //  snd_pcm_sw_params_set_stop_threshold(handle, swparams, buffer_size);
 
   if (snd_pcm_sw_params(handle, swparams) < 0) {
     printf("unable to install sw params:\n");
