@@ -3,7 +3,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include <jack/types.h>
 #include <jack/ringbuffer.h>
 
 #include "port.h"
@@ -21,25 +20,30 @@ class AlsaTPort {
   bool stop_flag;
   unsigned int prerollSize;
   pthread_t cthread;
-  static int process(jack_nframes_t nframes, void *user);
-
+  static void* process(void *user);
+  void xrun(void);
+  void suspend(void);
+  int monotonic;
   void doReturn();
+  void setup();
 
-  jack_client_t *client;
-  jack_ringbuffer_t **rings;
-  jack_default_audio_sample_t **in;
+  jack_ringbuffer_t *ring;
   unsigned int nports;
-  jack_port_t **ports;
   pthread_mutex_t meter_lock;
   pthread_cond_t  data_ready;
 
   unsigned long overruns;
 
+  snd_pcm_t *handle;
+  snd_pcm_format_t format;
+  snd_pcm_uframes_t period_time;
+  snd_output_t *log;
+
  public:
   int bits_per_sample, sample_rate, channels;
   int process_flag;
   sem_t finished_sem;
-  AlsaTPort(unsigned int card, unsigned int bits_per_sample, unsigned int sample_rate);
+  AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int sample_rate);
   virtual ~AlsaTPort();
   void startRecording(char *path);
   void stopRecording();

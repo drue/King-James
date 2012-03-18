@@ -10,11 +10,12 @@
 #include "spool.h"
 #include "memq.h"
 
-Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr)
+Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int c)
   :  ctx(1), socket(ctx, ZMQ_PUB) {
   Q = new MemQ(prerollSize, bufSize);
   bits_per_sample = bps;
   sample_rate = sr;
+  channels = c;
   finished = false;
   started = false;
   oFrames = 0;
@@ -41,11 +42,11 @@ void Spool::pushItem(QItem *item) {
 
   Q->putTail(item);
 
-  aFrames += item->frames;
+  aFrames += item->size / channels / 4;
 
   if (aFrames - lastProgress > sample_rate) {
     lastProgress = aFrames;
-    bufLength = Q->getSize() * item->frames / sample_rate;
+    bufLength = Q->getSize() * item->size / 4 / channels / sample_rate;
     sprintf(progMsg, "{\"t\":%.0f, \"m\":%d, \"b\":%d}", floor(oFrames / sample_rate), started ? 1 : 0, bufLength);
     zmq::message_t msg(progMsg, strlen(progMsg), NULL);
     socket.send(msg);
@@ -76,7 +77,7 @@ void Spool::doWrite(void *foo) {
   posix_fadvise(fileno(output), 8192, 0, POSIX_FADV_NOREUSE);
 
   encoder = FLAC__stream_encoder_new();
-  FLAC__stream_encoder_set_channels(encoder, 2);
+  FLAC__stream_encoder_set_channels(encoder, obj->channels);
   FLAC__stream_encoder_set_bits_per_sample(encoder, obj->bits_per_sample);
   FLAC__stream_encoder_set_sample_rate(encoder, obj->sample_rate);
   FLAC__stream_encoder_set_do_mid_side_stereo(encoder, 0);
@@ -98,9 +99,9 @@ void Spool::doWrite(void *foo) {
     ts.tv_nsec += 100000000;
     i = obj->Q->getHead(&ts);
     if (i != NULL) {
-      obj->oFrames += i->frames;
+      obj->oFrames += i->size / obj->channels / 4;
       // write QItem->buf to disk
-      if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i->buf, i->frames)){
+      if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i->buf, i->size / obj->channels / 4)){
         printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(encoder), 
                FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)]);
       }

@@ -22,10 +22,10 @@ class Spool {
 
  public:
 
-  Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr);
+  Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int channels);
   ~Spool();
   char *filename;
-  unsigned int bits_per_sample, sample_rate;
+  unsigned int bits_per_sample, sample_rate, channels;
   MemQ *Q;
   bool finished;
   bool started;

@@ -12,7 +12,7 @@ QItem::QItem (unsigned int msize)
 {
   buf = (FLAC__int32 *)malloc(msize);
   next = NULL;
-  frames = 0;
+  size = 0;
   bufsize = msize;
 }
 
@@ -84,6 +84,7 @@ void MemQ::returnEmpty(QItem *mt) {
     mt = empty;
   }
   empty = mt;
+  empty->size = 0;
   pthread_mutex_unlock(&mtlock);
 }
 
@@ -129,9 +130,7 @@ void MemQ::putTail(QItem *i) {
     head = foo->next;
     foo->next = NULL;
     size -= 1;
-    if (empty != NULL)
-      delete(foo);
-    else empty = foo;
+    returnEmpty(foo);
   }
     
   pthread_mutex_unlock(&lock);

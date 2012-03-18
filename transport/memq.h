@@ -18,7 +18,7 @@
 class QItem {
  public:
   FLAC__int32 *buf;
-  unsigned int frames;
+  unsigned int size;
   unsigned int bufsize;
   QItem *next;
   QItem(unsigned int max_size);

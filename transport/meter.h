@@ -10,11 +10,11 @@ class Meter {
   pthread_t sthread;
   pthread_t cthread;
   bool finished;
-  pthread_mutex_t lock;
-  pthread_cond_t cond;
+  pthread_mutex_t *lock;
+  pthread_cond_t *cond;
   unsigned int chans;
   unsigned int rate;
-  jack_ringbuffer_t **rings;
+  jack_ringbuffer_t *ring;
   Spool *spool;
   pthread_mutex_t maxLock;
   FLAC__int32 *max;
@@ -27,7 +27,7 @@ class Meter {
  public:
   virtual ~Meter();
 
-  Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t **qs, Spool *aSpool, pthread_mutex_t lock, pthread_cond_t cond);
+  Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q, Spool *aSpool, pthread_mutex_t *lock, pthread_cond_t *cond);
   long getmaxn(unsigned int n);
   void resetmax();
   void switchSpool(Spool *newSpool);

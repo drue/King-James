@@ -3,7 +3,7 @@
  *  
  *
  *  Created on Mon Oct 01 2001.
- *  Copyright (c) 2001-2010 Andrew Loewenstern. All rights reserved.
+ *  Copyright (c) 2001-2012 Andrew Loewenstern. All rights reserved.
  *
  */
 
@@ -11,13 +11,11 @@
 #include <alsa/asoundlib.h>
 #include <pthread.h>
 #include <sys/types.h>
-//#include <sys/stat.h>
 #include <algorithm>
 
 #include <fcntl.h>
 #include <FLAC/all.h>
 
-#include <jack/jack.h>
 #include <jack/ringbuffer.h>
 
 #include "const.h"
@@ -25,133 +23,288 @@
 #define PREROLL_LENGTH 60
 #define RING_LENGTH 5
 #define UPDATE_INTERVAL 10 // hz
+#define SAMPLE_SIZE 4 // used plughw to get signed 32-bit ints, since that's what FLAC wants
 
-// this function is called by jack and should be at realtime priority
-// it should do as little as possible as quickly as possible because nothing
-// else happens while it is running
-int AlsaTPort::process(jack_nframes_t nframes, void *user)
+
+#ifndef timermsub
+#define	timermsub(a, b, result) \
+do { \
+	(result)->tv_sec = (a)->tv_sec - (b)->tv_sec; \
+	(result)->tv_nsec = (a)->tv_nsec - (b)->tv_nsec; \
+	if ((result)->tv_nsec < 0) { \
+		--(result)->tv_sec; \
+		(result)->tv_nsec += 1000000000L; \
+	} \
+} while (0)
+#endif
+
+void AlsaTPort::suspend(void)
 {
-	int chn;
-	size_t space = 0;
-	AlsaTPort *tport = (AlsaTPort *) user;
+	int res;
 
-    if(tport->process_flag == 0)
-      return 0;
-
-    // get buffers
-	for (chn = 0; chn < tport->channels; chn++)
-      tport->in[chn] = (jack_default_audio_sample_t*) jack_port_get_buffer (tport->ports[chn], nframes);
-    
-    // we have to write the same amount to every ring, otherwise the channels could get out of sync if
-    // there is an overflow on only some channels because the drain is halfway through the rings
-    // the ring should be large enough to always have enough space unless there is a problem
-    space = jack_ringbuffer_write_space(tport->rings[0]);    
-    for (int i=1;i<tport->channels;i++) {
-      size_t tspace = jack_ringbuffer_write_space(tport->rings[i]);
-      if (tspace < space)
-        space = tspace;
+    fprintf(stderr, "Suspended. Trying resume. "); fflush(stderr);
+	while ((res = snd_pcm_resume(handle)) == -EAGAIN)
+		sleep(1);	/* wait until suspend flag is released */
+	if (res < 0) {
+      fprintf(stderr, "Failed. Restarting stream. "); fflush(stderr);
+      if ((res = snd_pcm_prepare(handle)) < 0) {
+        fprintf(stderr, "suspend: prepare error: %s", snd_strerror(res));
+        exit(-1);
+      }
     }
-
-    if (space < (nframes * sizeof(float))) {
-      unsigned int orun = nframes - (space / sizeof(float));
-      tport->overruns += orun;
-    }
-    space = std::min(space, nframes * sizeof(float));
-
-    // transfer samples to ringbuffer
-    // there should always be enough space
-    for (chn = 0; chn < tport->channels; chn++) {
-      jack_ringbuffer_write (tport->rings[chn], (const char *) (tport->in[chn]),  space);
-    }
-    
-    if (pthread_mutex_trylock (&(tport->meter_lock)) == 0) {
-      pthread_cond_signal (&(tport->data_ready));
-      pthread_mutex_unlock (&(tport->meter_lock));
-    }
-    return 0;
+    fprintf(stderr, "Done.\n");
 }
 
-AlsaTPort::AlsaTPort(unsigned int card, unsigned int bits_per_sample, unsigned int sample_rate) {
+void AlsaTPort::xrun(void)
+{
+	snd_pcm_status_t *status;
+	int res;
+	
+	snd_pcm_status_alloca(&status);
+	if ((res = snd_pcm_status(handle, status))<0) {
+      printf("status error: %s", snd_strerror(res));
+      exit(-1);
+	}
+	if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN) {
+        struct timespec now, diff, tstamp;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        snd_pcm_status_get_trigger_htstamp(status, &tstamp);
+        timermsub(&now, &tstamp, &diff);
+        fprintf(stderr, "%s!!! (at least %.3f ms long)\n",
+				"overrun",
+				diff.tv_sec * 1000 + diff.tv_nsec / 10000000.0);
+        fprintf(stderr, "Status:\n");
+        snd_pcm_status_dump(status, log);
+        if ((res = snd_pcm_prepare(handle))<0) {
+          printf("xrun: prepare error: %s", snd_strerror(res));
+          exit(-1);
+        }
+        if ((res = snd_pcm_start(handle))<0) {
+          printf("xrun: start error: %s", snd_strerror(res));
+        }
+        return;		/* ok, data should be accepted again */
+	} if (snd_pcm_status_get_state(status) == SND_PCM_STATE_DRAINING) {
+      fprintf(stderr, "Status(DRAINING):\n");
+      snd_pcm_status_dump(status, log);
+      fprintf(stderr, "capture stream format change? attempting recover...\n");
+      if ((res = snd_pcm_prepare(handle))<0) {
+        fprintf(stderr, "xrun(DRAINING): prepare error: %s", snd_strerror(res));
+        exit(-1);
+      }
+      return;
+	}
+    fprintf(stderr, "Status(R/W):\n");
+    snd_pcm_status_dump(status, log);
+    printf("read/write error, state = %s", snd_pcm_state_name(snd_pcm_status_get_state(status)));
+	exit(-1);
+}
+
+void *AlsaTPort::process(void *user)
+{
+  AlsaTPort *tport = (AlsaTPort *) user;
+  snd_pcm_sframes_t avail, r, got;
+  snd_pcm_uframes_t n;
+  jack_ringbuffer_data_t writevec[2];
+  struct sched_param schp;
+
+  memset(&schp, 0, sizeof(schp));
+  schp.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+  if (sched_setscheduler(0, SCHED_FIFO, &schp) != 0) {
+    perror("sched_setscheduler");
+  }
+  printf("got realtime, entering read loop\n");
+
+  while(tport->stop_flag == false) {
+    avail = snd_pcm_avail_update(tport->handle);
+    got = 0;
+    while(avail > 0) {
+      jack_ringbuffer_get_write_vector(tport->ring, writevec);
+      n = std::min((int)writevec[0].len / SAMPLE_SIZE / tport->channels, (int)avail);
+      r = snd_pcm_readi(tport->handle, writevec[0].buf, n);
+      if (r == -EPIPE) {
+        tport->xrun();
+      } else if (r == -ESTRPIPE) {
+        tport->suspend();
+      } else if (r < 0) {
+        fprintf(stderr, "read error: %s", snd_strerror(r));
+        exit(-1);
+      }
+      else {
+        got += r;
+        avail -= r;
+        
+        if (avail && ((r * SAMPLE_SIZE * tport->channels) == writevec[0].len)) {
+          r = snd_pcm_readi(tport->handle, writevec[1].buf, writevec[1].len / SAMPLE_SIZE / tport->channels);
+          if (r == -EPIPE) {
+            tport->xrun();
+          } else if (r == -ESTRPIPE) {
+            tport->suspend();
+          } else if (r < 0) {
+            fprintf(stderr, "read error: %s", snd_strerror(r));
+            exit(-1);
+          }
+          else {
+            got += r;
+          }
+        }
+        jack_ringbuffer_write_advance(tport->ring, got * SAMPLE_SIZE * tport->channels);
+      }
+      avail = snd_pcm_avail_update(tport->handle);
+    }
+    if (got && pthread_mutex_trylock (&(tport->meter_lock)) == 0) {
+      pthread_cond_signal (&(tport->data_ready));
+      pthread_mutex_unlock (&(tport->meter_lock));
+      got = 0;
+    }
+    if (avail == -EPIPE) {
+      tport->xrun();
+      avail = 0;
+    } else if (avail == -ESTRPIPE) {
+      tport->suspend();
+      avail = 0;
+    } else if (avail < 0) {
+      fprintf(stderr, "read error: %s", snd_strerror(r));
+      exit(-1);
+    }
+    snd_pcm_wait(tport->handle, 1000);
+  }
+}
+
+AlsaTPort::AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int sample_rate) {
+  char cardString[256];
+  int err;
+  snd_pcm_status_t *status;
+
   this->bits_per_sample = bits_per_sample;
   this->sample_rate = sample_rate;
-  this->channels = 0;
+  this->channels = 2;
   this->process_flag = 0;
+ 
+  sprintf(cardString, "plughw:%s,0", card);
+
+
+  err=snd_pcm_open(&(handle), cardString, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
+  if (err < 0) {
+    printf("audio open error: %s\n", snd_strerror(err));
+  }
+
+  setup();
 
   // set to 1 if threads should stop
   stop_flag = false;
 
-  jack_status_t status;
   pthread_mutex_init(&meter_lock, NULL);
   pthread_cond_init(&data_ready, NULL);
 
   overruns = 0;
 
-  if ((client = jack_client_open("james", JackNullOption, &status)) == 0) {
-    printf("Failed to open jack client. %d \n", status);
-  } 
+  ring = jack_ringbuffer_create(SAMPLE_SIZE * channels * sample_rate * RING_LENGTH);
+  jack_ringbuffer_mlock(ring);
+  memset(ring->buf, 0, ring->size); // need to touch memory to ensure all pages are locked
 
 
-  jack_set_process_callback(client, process, this);
-
-  if( jack_activate(client) ) {
-    fprintf(stderr, "can't activate client!");
-  }
-
-  const char **names = jack_get_ports(client, NULL, NULL, JackPortIsOutput);
-  for(int i=0;names[i] != '\0';i++){
-    channels++;
-  }
-
-  ports = (jack_port_t **) malloc (sizeof (jack_port_t *) * channels);
-
-  for(int i=0;names[i] != '\0';i++){
-    char name[64];
-    sprintf (name, "input%d", i+1);
-    if ((ports[i] = jack_port_register(client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0)) == 0){
-      printf("failed to register %s!\n", names[i]);
-    }
-    else
-      printf("registered %s\n", name);
-  }
-
-  for(int i=0;i < channels;i++){
-    if (jack_connect(client, names[i], jack_port_name(ports[i]))){
-      printf("cannot connect port %s!\n", names[i]);
-    }
-    else
-      printf("connected %s\n", names[i]);
-  }   
-
-  rings = (jack_ringbuffer_t**)malloc(sizeof(jack_ringbuffer_t*) * channels);
-  for(int i = 0;i < channels;i++) {
-    rings[i] = jack_ringbuffer_create(sizeof(float) * sample_rate * RING_LENGTH);
-    jack_ringbuffer_mlock(rings[i]);
-  }
-
-
-
-  prerollSize = PREROLL_LENGTH * 10;
+  prerollSize = PREROLL_LENGTH * UPDATE_INTERVAL;
 #ifdef DEBUG
   printf("prerollbuffer: %d\n", prerollSize);
 #endif
 
   
-  spool = new Spool(prerollSize, (sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate);
-  meter = new Meter(channels, sample_rate, rings, spool, meter_lock, data_ready);
+  spool = new Spool(prerollSize, (sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels);
+  meter = new Meter(channels, sample_rate, ring, spool, &meter_lock, &data_ready);
 
-  process_flag = 1;
+  pthread_create(&cthread, NULL, &process, this);
+
+  err = snd_pcm_start(handle);
+  if(err != 0) {
+    printf("did not start.\n");
+  }
+  snd_pcm_status_alloca(&status);
+  if ((err = snd_pcm_status(handle, status))<0) {
+    printf("status error: %s", snd_strerror(err));
+    exit(-1);
+  }
+
 #ifdef DEBUG
   printf("ready...\n");
 #endif
 }
 
+void AlsaTPort::setup() {
+  snd_pcm_hw_params_t *params;
+  snd_pcm_sw_params_t *swparams;
+  snd_pcm_uframes_t buffer_size;
+  int err;
+  snd_pcm_uframes_t chunk_size;
+  unsigned int rate = 48000;
+  unsigned int buffer_time = 0;
+  unsigned int period_time = 0;
+
+  snd_pcm_hw_params_alloca(&params);
+  snd_pcm_sw_params_alloca(&swparams);
+
+  snd_output_stdio_attach(&log, stderr, 0);
+
+  err = snd_pcm_hw_params_any(handle, params);
+  if (err < 0) {
+    printf("Bad configuration for this PCM: no configurations available\n");
+    exit(-1);
+  }
+
+  snd_pcm_hw_params_dump(params, log);
+
+  snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+  snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S32);
+    
+  snd_pcm_hw_params_set_channels(handle, params, channels);
+
+  snd_pcm_hw_params_set_rate_near(handle, params, &rate, 0);
+
+  snd_pcm_hw_params_get_buffer_time_max(params, &buffer_time, 0);
+    
+  assert(err >= 0);
+  if (buffer_time > 500000)
+    buffer_time = 500000;
+
+  period_time = buffer_time / SAMPLE_SIZE;
+  err=snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, 0);
+  assert(err >= 0);
+
+  err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, 0);
+  assert(err >= 0);
+  
+  monotonic = snd_pcm_hw_params_is_monotonic(params);
+
+  err = snd_pcm_hw_params(handle, params);
+
+  if (err < 0) {
+    printf("Unable to install hw params:\n");
+    snd_pcm_hw_params_dump(params, log);
+    exit(-1);
+  }
+
+  snd_pcm_hw_params_get_period_size(params, &chunk_size, 0);
+  snd_pcm_hw_params_get_buffer_size(params, &buffer_size);
+
+  snd_pcm_sw_params_current(handle, swparams);
+
+  snd_pcm_sw_params_set_avail_min(handle, swparams, chunk_size);
+  snd_pcm_sw_params_set_start_threshold(handle, swparams, 1);
+    
+  snd_pcm_sw_params_set_stop_threshold(handle, swparams, buffer_size);
+
+  if (snd_pcm_sw_params(handle, swparams) < 0) {
+    printf("unable to install sw params:\n");
+    snd_pcm_sw_params_dump(swparams, log);
+    exit(-1);
+  }
+  snd_pcm_dump(handle, log);
+}
+
 AlsaTPort::~AlsaTPort() {
   delete(meter);
   delete(spool);
-  free(ports);
-  for(int i = 0;i < channels; i++)
-    jack_ringbuffer_free(rings[i]);
-  free(rings);
+  jack_ringbuffer_free(ring);
 }
 
 void AlsaTPort::startRecording(char *path) {
@@ -160,7 +313,7 @@ void AlsaTPort::startRecording(char *path) {
 
 void AlsaTPort::stopRecording() {
   Spool *oldSpool = spool;
-  spool = new Spool(prerollSize, (sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate);
+  spool = new Spool(prerollSize, (sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels);
   meter->switchSpool(spool);
   oldSpool->finish();
 }

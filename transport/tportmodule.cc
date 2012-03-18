@@ -82,9 +82,10 @@ static PyObject *tport_getattr(PyAlsaTPort *tp, char *name)
 static PyObject *newTPort(PyObject *self, PyObject *args)
 {
   PyAlsaTPort *tport;
-  unsigned int card, bps, sr;
+  unsigned int bps, sr;
+  char *card;
     
-  if (!PyArg_ParseTuple(args, "III", &card, &bps, &sr))
+  if (!PyArg_ParseTuple(args, "sII", &card, &bps, &sr))
 	return NULL;
 
   tport = (PyAlsaTPort *)PyObject_New(PyAlsaTPort, &AlsaTPortType);

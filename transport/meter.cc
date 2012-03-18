@@ -11,9 +11,9 @@
 
 #define DECAY 1700
 
-Meter::Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t **qs, Spool *aSpool, pthread_mutex_t l, pthread_cond_t c) {
+Meter::Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q, Spool *aSpool, pthread_mutex_t *l, pthread_cond_t *c) {
   finished = false;
-  rings = qs;
+  ring = q;
   spool = aSpool;
   this->chans = chans;
   max = (FLAC__int32*)malloc(sizeof(FLAC__int32*) * chans);
@@ -58,74 +58,76 @@ void  Meter::resetmax()
 }
 
 float todBFS(FLAC__int32 sample)  {
-  return 20 * log10(sample / 8388607.0);
+  if(sample)
+    return 20 * log10(sample / 8388607.0);
+  else return -140;
 }
 
 void Meter::run(void *foo) {
   Meter *obj = (Meter *)foo;
-  unsigned is;
+  unsigned is, os;
   FLAC__int32 tMax[obj->chans];
   unsigned int frames;
-  unsigned int ws;
   zmq::context_t ctx(1);
   zmq::socket_t socket(ctx, ZMQ_PUB);
-  struct timespec ts;
-
+  unsigned x;
   
   socket.bind("ipc:///tmp/peaks.ipc");
 
-  jack_ringbuffer_data_t regions[obj->chans][2];
+  jack_ringbuffer_data_t regions[2];
   QItem *o = obj->spool->getEmpty();
 
   for(unsigned i=0;i<obj->chans;i++)
     tMax[i] = 0;
 
-  pthread_mutex_lock(&obj->lock);
+  pthread_mutex_lock(obj->lock);
+  printf("meter running\n");
 
   while(1) {
-    clock_gettime(CLOCK_REALTIME, &ts) ;
-    ts.tv_nsec += 100000000;
-    jack_ringbuffer_get_read_vector(obj->rings[0], regions[0]);
-    size_t size = regions[0][0].len + regions[0][1].len;
-    for(unsigned i =1; i < obj->chans;i++) {
-      jack_ringbuffer_get_read_vector(obj->rings[i], regions[i]);
-      size = std::min(size, regions[i][0].len + regions[i][1].len);
-    }
-
-    frames = size / sizeof(float);
+    pthread_cond_wait (obj->cond, obj->lock);
+    size_t size = jack_ringbuffer_read_space(obj->ring);
+    frames = size / 4 / obj->chans;
+    
+    jack_ringbuffer_get_read_vector(obj->ring, regions);
 
     for(unsigned i=0;i < obj->chans;i++)
       tMax[i] = 0;
 
-    is = 0;
+    is = os = 0;
     for(unsigned i=0;i < frames;i++) {
-      for(unsigned c=0;c < obj->chans;c++) {
-        int n;
-        ws = o->frames * obj->chans * sizeof(float);
-        if(is < regions[c][0].len)
-          n = 0;
-        else
-          n = 1;
-        o->buf[ws] = (FLAC__int32)((float)*(regions[c][n].buf + is) * 8388607); //xxx
-
-        if (abs(o->buf[ws]) > tMax[c]) 
-          tMax[c] = abs(o->buf[ws]);
-        ws += sizeof(float);
-        is += sizeof(float);
-      }
-
-      o->frames += 1;
-
-      if (o->frames * obj->chans * sizeof(float) == o->bufsize) {
-        obj->shipItem(o, tMax, &socket);
+      if (o->size == o->bufsize) {
+        QItem *z = o;
         o = obj->spool->getEmpty();
+        obj->shipItem(z, tMax, &socket);
+        os = 0;
         for(unsigned i=0;i<obj->chans;i++)
           tMax[i] = 0;
-      }    
+      }
+      for(unsigned c=0;c < obj->chans;c++) {
+        int n;
+        if(is < regions[0].len) {
+          n = 0;
+          x = is;
+        }
+        else {
+          n = 1;
+          x = is - regions[0].len;
+        }
+        o->buf[os / 4] = (FLAC__int32)*(regions[n].buf + x);
+        if (abs(o->buf[os / 4]) > tMax[c]) 
+          tMax[c] = abs(o->buf[os / 4]);
+        os += 4;
+        is += 4;
+        o->size += 4;
+      }
+      if (o->size > o->bufsize) {
+        printf("OVERFLOW\n");
+        exit(-1);
+      }
     }
-    pthread_cond_wait (&obj->cond, &obj->lock);
+    jack_ringbuffer_read_advance(obj->ring, is);
   }
-  pthread_mutex_unlock(&obj->lock);
+  pthread_mutex_unlock(obj->lock);
 }
 
 void Meter::shipItem(QItem*item, FLAC__int32*tMax, zmq::socket_t *socket) {
@@ -134,7 +136,7 @@ void Meter::shipItem(QItem*item, FLAC__int32*tMax, zmq::socket_t *socket) {
   char str[1024] = "";
   char tmp[64];
 
-  millis = item->frames * 1000 / rate;
+  millis = item->size / 4 / chans / rate * 1000;
   decay = 8388608 * millis / DECAY;
 
   pthread_mutex_lock(&maxLock);	
@@ -157,10 +159,10 @@ void Meter::shipItem(QItem*item, FLAC__int32*tMax, zmq::socket_t *socket) {
     if (i + 1 < chans)
       strcat(str, ",");
   }
+  strcat(str, "]");
   pthread_mutex_unlock(&maxLock);
   
   spool->pushItem(item);
-  
   zmq::message_t msg(str, strlen(str), NULL);
   socket->send(msg);
 }
