@@ -272,6 +272,7 @@ int APort::readIntoBuf(FLAC__int32 *buf, ssize_t count)
       } 
       else if (r == -ESTRPIPE){
         while ((r = snd_pcm_resume(handle)) == -EAGAIN)
+          printf("STRPIPE\n");
           usleep(1000);	/* wait until suspend flag is released */
         if (res < 0) {
           if ((res = snd_pcm_prepare(handle)) < 0) {
@@ -390,7 +391,7 @@ void APort::xrun(void)
 	
   snd_pcm_status_alloca(&status);
   if ((res = snd_pcm_status(handle, status))<0) {
-    printf("status error: %s", snd_strerror(res));
+    printf("xrun status error: %s", snd_strerror(res));
     exit(-1);
   }
   if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN) {

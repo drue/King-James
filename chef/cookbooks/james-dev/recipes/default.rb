@@ -1,3 +1,4 @@
+package "alsa"
 package "libasound2-dev"
 package "libflac-dev"
 package "build-essential"
@@ -22,5 +23,13 @@ python_pip "git+https://github.com/MrJoes/tornadio2.git" do
   action :install
 end
 
+git "/home/ubuntu/src" do
+  repository "https://github.com/drue/King-James.git"
+  action :sync
+end
 
+### building images
+package "uboot-mkimage"
+package "btrfs-tools"
+package "pv"
 
