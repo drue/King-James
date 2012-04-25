@@ -106,7 +106,6 @@ void *AlsaTPort::process(void *user)
   snd_pcm_uframes_t n;
   jack_ringbuffer_data_t writevec[2];
   struct sched_param schp;
-  //long stupid[7000 * 2];
 
   memset(&schp, 0, sizeof(schp));
   schp.sched_priority = sched_get_priority_max(SCHED_FIFO);
@@ -122,10 +121,7 @@ void *AlsaTPort::process(void *user)
     while(avail > 0) {
       jack_ringbuffer_get_write_vector(tport->ring, writevec);
       n = std::min((int)writevec[0].len / SAMPLE_SIZE / tport->channels, (int)avail);
-      //n = std::min((snd_pcm_sframes_t)7000, avail);
       r = snd_pcm_readi(tport->handle, writevec[0].buf, n);
-      //r = snd_pcm_readi(tport->handle, stupid, n);
-      //jack_ringbuffer_write(tport->ring, (const char *)stupid, r*8);
       if (r == -EPIPE) {
         tport->xrun();
       } else if (r == -ESTRPIPE) {
@@ -188,7 +184,7 @@ AlsaTPort::AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int samp
   sprintf(cardString, "plughw:%s", card);
 
 
-  err=snd_pcm_open(&(handle), cardString, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
+  err=snd_pcm_open(&handle, cardString, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
   if (err < 0) {
     printf("audio open error: %s\n", snd_strerror(err));
   }
@@ -223,6 +219,7 @@ AlsaTPort::AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int samp
   if(err != 0) {
     printf("did not start.\n");
   }
+
   snd_pcm_status_alloca(&status);
   if ((err = snd_pcm_status(handle, status))<0) {
     printf("status error: %s", snd_strerror(err));
@@ -256,10 +253,8 @@ void AlsaTPort::setup() {
     exit(-1);
   }
 
-  snd_pcm_hw_params_dump(params, log);
-
   snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
-  snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S32);
+  snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S24);
     
   snd_pcm_hw_params_set_channels(handle, params, channels);
 
@@ -279,8 +274,6 @@ void AlsaTPort::setup() {
   err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, 0);
   assert(err >= 0);
   
-  monotonic = snd_pcm_hw_params_is_monotonic(params);
-
   err = snd_pcm_hw_params(handle, params);
 
   if (err < 0) {
@@ -288,6 +281,9 @@ void AlsaTPort::setup() {
     snd_pcm_hw_params_dump(params, log);
     exit(-1);
   }
+
+  printf("snd_pcm_hw_params_dump:\n");
+  snd_pcm_hw_params_dump(params, log);
 
   snd_pcm_hw_params_get_period_size(params, &chunk_size, 0);
   snd_pcm_hw_params_get_buffer_size(params, &buffer_size);
@@ -306,6 +302,8 @@ void AlsaTPort::setup() {
     snd_pcm_sw_params_dump(swparams, log);
     exit(-1);
   }
+
+  printf("snd_pcm_dump:\n");
   snd_pcm_dump(handle, log);
 }
 

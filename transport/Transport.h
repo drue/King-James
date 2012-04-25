@@ -23,7 +23,6 @@ class AlsaTPort {
   static void* process(void *user);
   void xrun(void);
   void suspend(void);
-  int monotonic;
   void doReturn();
   void setup();
 

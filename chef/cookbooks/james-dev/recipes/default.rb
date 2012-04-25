@@ -10,13 +10,14 @@ package "libzmq-dev"
 package "libevent-dev"
 package "gdb"
 package "htop"
-package "jackd2"
-package "libjack-jackd2-dev"
-package "jack-tools"
+#package "jackd2"
+package "libjack-dev"
+#package "jack-tools"
+package "libgtest-dev"
 
-file "/etc/jackdrc" do
-  content "/usr/bin/jackd  -Z -d alsa -d hw:miniStreamer -C -n 24"
-end
+#file "/etc/jackdrc" do
+#  content "/usr/bin/jackd  -Z -d alsa -d hw:miniStreamer -C -n 24"
+#end
 
 
 python_pip "pyzmq" do
@@ -27,7 +28,7 @@ python_pip "tornado" do
   action :install
 end
 
-python_pip "git+https://github.com/MrJoes/tornadio2.git" do
+python_pip "git+https://github.com/mrjoes/tornadio2.git" do
   action :install
 end
 
