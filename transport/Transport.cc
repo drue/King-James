@@ -21,7 +21,7 @@
 #include "const.h"
 
 #define PREROLL_LENGTH 60
-#define RING_LENGTH 5
+#define RING_LENGTH 10
 #define UPDATE_INTERVAL 10 // hz
 #define SAMPLE_SIZE 4 // used plughw to get signed 32-bit ints, since that's what FLAC wants
 

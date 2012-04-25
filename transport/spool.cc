@@ -47,7 +47,8 @@ void Spool::pushItem(QItem *item) {
   if (aFrames - lastProgress > sample_rate) {
     lastProgress = aFrames;
     bufLength = Q->getSize() * item->size / 4 / channels / sample_rate;
-    sprintf(progMsg, "{\"t\":%.0f, \"m\":%d, \"b\":%d}", floor(oFrames / sample_rate), started ? 1 : 0, bufLength);
+    sprintf(progMsg, "{\"t\":%.0f, \"m\":%d, \"b\":%d}", floor(oFrames / sample_rate), 
+            started ? 1 : 0, bufLength);
     zmq::message_t msg(progMsg, strlen(progMsg), NULL);
     socket.send(msg);
   }
@@ -101,7 +102,8 @@ void Spool::doWrite(void *foo) {
     if (i != NULL) {
       obj->oFrames += i->size / obj->channels / 4;
       // write QItem->buf to disk
-      if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i->buf, obj->oFrames)){
+      if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i->buf,
+                                                    i->size / obj->channels / 4)){
         printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(encoder), 
                FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)]);
       }
