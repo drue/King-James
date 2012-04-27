@@ -44,7 +44,7 @@ void Spool::pushItem(QItem *item) {
 
   aFrames += item->size / channels / 4;
 
-  if (aFrames - lastProgress > sample_rate) {
+  if (aFrames - lastProgress > sample_rate / 4) {
     lastProgress = aFrames;
     bufLength = Q->getSize() * item->size / 4 / channels / sample_rate;
     sprintf(progMsg, "{\"t\":%.0f, \"m\":%d, \"b\":%d}", floor(oFrames / sample_rate), 
