@@ -22,7 +22,7 @@
 
 #define PREROLL_LENGTH 60
 #define RING_LENGTH 10
-#define UPDATE_INTERVAL 10 // hz
+#define UPDATE_INTERVAL 8 // hz
 #define SAMPLE_SIZE 4 // used plughw to get signed 32-bit ints, since that's what FLAC wants
 
 
@@ -134,7 +134,7 @@ void *AlsaTPort::process(void *user)
         got += r;
         avail -= r;
 
-        if (avail && ((r * SAMPLE_SIZE * tport->channels) == writevec[0].len)) {
+        if (avail && ((r * SAMPLE_SIZE * tport->channels) == writevec[0].len) && writevec[1].len > 0) {
           r = snd_pcm_readi(tport->handle, writevec[1].buf, writevec[1].len / SAMPLE_SIZE / tport->channels);
           if (r == -EPIPE) {
             tport->xrun();
