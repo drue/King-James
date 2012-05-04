@@ -1,3 +1,7 @@
+import os
+
+os.system("alsactl restore")
+
 import transport
 from const import *
 

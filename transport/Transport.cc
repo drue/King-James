@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <algorithm>
+#include <sys/prctl.h>
 
 #include <fcntl.h>
 #include <FLAC/all.h>
@@ -21,7 +22,7 @@
 #include "const.h"
 
 #define PREROLL_LENGTH 60
-#define RING_LENGTH 10
+#define RING_LENGTH 1
 #define UPDATE_INTERVAL 8 // hz
 #define SAMPLE_SIZE 4 // used plughw to get signed 32-bit ints, since that's what FLAC wants
 
@@ -107,6 +108,8 @@ void *AlsaTPort::process(void *user)
   jack_ringbuffer_data_t writevec[2];
   struct sched_param schp;
 
+  prctl(PR_SET_NAME, "card drain", 0, 0, 0);
+
   memset(&schp, 0, sizeof(schp));
   schp.sched_priority = sched_get_priority_max(SCHED_FIFO);
 
@@ -167,7 +170,7 @@ void *AlsaTPort::process(void *user)
       fprintf(stderr, "read error: %s", snd_strerror(r));
       exit(-1);
     }
-    snd_pcm_wait(tport->handle, 1000);
+    snd_pcm_wait(tport->handle, 100);
   }
 }
 

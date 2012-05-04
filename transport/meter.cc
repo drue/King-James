@@ -28,7 +28,6 @@ Meter::Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q,
   rate = sample_rate;
 
   pthread_create(&sthread, NULL, (void * (*)(void *))run, this);
-  
 }
 
 Meter::~Meter() {
@@ -118,6 +117,7 @@ void Meter::run(void *foo) {
         QItem *z = o;
         o = obj->spool->getEmpty();
         obj->shipItem(z, tMax, &socket);
+        //printf("shipped, freespace: %d\n", jack_ringbuffer_write_space(obj->ring));
         os = 0;
         for(unsigned z=0;z < obj->chans;z++) {
           tMax[z] = 0;

@@ -109,8 +109,6 @@ void Spool::doWrite(void *foo) {
       }
       delete i;
     }
-
-    
     s = obj->Q->getSize();
   } while (s > 0 || (s == 0 && !obj->finished));
 
