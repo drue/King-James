@@ -23,7 +23,7 @@
 
 #define PREROLL_LENGTH 60
 #define RING_LENGTH 1
-#define UPDATE_INTERVAL 8 // hz
+#define UPDATE_INTERVAL 10 // hz
 #define SAMPLE_SIZE 4 // used plughw to get signed 32-bit ints, since that's what FLAC wants
 
 
@@ -103,7 +103,7 @@ void AlsaTPort::xrun(void)
 void *AlsaTPort::process(void *user)
 {
   AlsaTPort *tport = (AlsaTPort *) user;
-  snd_pcm_sframes_t avail, r, got;
+  snd_pcm_sframes_t count, r, got;
   snd_pcm_uframes_t n;
   jack_ringbuffer_data_t writevec[2];
   struct sched_param schp;
@@ -116,29 +116,29 @@ void *AlsaTPort::process(void *user)
   if (sched_setscheduler(0, SCHED_FIFO, &schp) != 0) {
     perror("sched_setscheduler");
   }
-  printf("got realtime, entering read loop\n");
 
   while(tport->stop_flag == false) {
-    avail = snd_pcm_avail_update(tport->handle);
     got = 0;
-    while(avail > 0) {
+    count =  (tport->sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * tport->channels / 8;
+    while(count > 0) {
       jack_ringbuffer_get_write_vector(tport->ring, writevec);
-      n = std::min((int)writevec[0].len / SAMPLE_SIZE / tport->channels, (int)avail);
+      n = std::min((int)writevec[0].len / SAMPLE_SIZE / tport->channels, (int)count);
       r = snd_pcm_readi(tport->handle, writevec[0].buf, n);
       if (r == -EPIPE) {
         tport->xrun();
       } else if (r == -ESTRPIPE) {
         tport->suspend();
-      } else if (r < 0) {
+      }
+      else if (r < 0) {
         fprintf(stderr, "read error: %s", snd_strerror(r));
         exit(-1);
       }
       else {
         got += r;
-        avail -= r;
+        count -= r;
 
-        if (avail && ((r * SAMPLE_SIZE * tport->channels) == writevec[0].len) && writevec[1].len > 0) {
-          r = snd_pcm_readi(tport->handle, writevec[1].buf, writevec[1].len / SAMPLE_SIZE / tport->channels);
+        if (count && ((r * SAMPLE_SIZE * tport->channels) == writevec[0].len) && writevec[1].len > 0) {
+          r = snd_pcm_readi(tport->handle, writevec[1].buf, count);
           if (r == -EPIPE) {
             tport->xrun();
           } else if (r == -ESTRPIPE) {
@@ -149,28 +149,15 @@ void *AlsaTPort::process(void *user)
           }
           else {
             got += r;
+            count -=r;
           }
         }
         jack_ringbuffer_write_advance(tport->ring, got * SAMPLE_SIZE * tport->channels);
+        pthread_cond_signal (&(tport->data_ready));
+        pthread_mutex_unlock (&(tport->meter_lock));
+        got = 0;
       }
-      avail = snd_pcm_avail_update(tport->handle);
     }
-    if (got && (pthread_mutex_trylock (&(tport->meter_lock)) == 0)) {
-      pthread_cond_signal (&(tport->data_ready));
-      pthread_mutex_unlock (&(tport->meter_lock));
-      got = 0;
-    }
-    if (avail == -EPIPE) {
-      tport->xrun();
-      avail = 0;
-    } else if (avail == -ESTRPIPE) {
-      tport->suspend();
-      avail = 0;
-    } else if (avail < 0) {
-      fprintf(stderr, "read error: %s", snd_strerror(r));
-      exit(-1);
-    }
-    snd_pcm_wait(tport->handle, 100);
   }
 }
 
@@ -187,7 +174,7 @@ AlsaTPort::AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int samp
   sprintf(cardString, "plughw:%s", card);
 
 
-  err=snd_pcm_open(&handle, cardString, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
+  err=snd_pcm_open(&handle, cardString, SND_PCM_STREAM_CAPTURE, 0);
   if (err < 0) {
     printf("audio open error: %s\n", snd_strerror(err));
   }
@@ -270,9 +257,12 @@ void AlsaTPort::setup() {
   if (buffer_time > 500000)
     buffer_time = 500000;
 
-  period_time = buffer_time / SAMPLE_SIZE;
+  period_time = (sample_rate  / UPDATE_INTERVAL / 4) * sizeof(FLAC__int32) * channels;
+
   err=snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, 0);
   assert(err >= 0);
+
+  buffer_time = period_time * 8;
 
   err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, 0);
   assert(err >= 0);

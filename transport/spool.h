@@ -29,6 +29,7 @@ class Spool {
   MemQ *Q;
   bool finished;
   bool started;
+  pthread_mutex_t frameLock;
 
   virtual void pushItem(QItem *item);
   virtual QItem *getEmpty();

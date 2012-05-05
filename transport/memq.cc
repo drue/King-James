@@ -60,6 +60,10 @@ unsigned int MemQ::getSize() {
   return s;
 }
 
+unsigned int MemQ::bufSize() {
+  return buf_size;
+}
+
 QItem *MemQ::getEmpty()
 {
   QItem *foo;

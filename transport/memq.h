@@ -32,6 +32,7 @@ class MemQ {
   void returnEmpty(QItem *mt);
   QItem *getHead(struct timespec *wait);
   unsigned int getSize();
+  unsigned int bufSize();
   void putTail(QItem *i);
   MemQ(unsigned int max_size, unsigned int buf_size);
   ~MemQ();

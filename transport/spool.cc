@@ -21,6 +21,8 @@ Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, u
   oFrames = 0;
   aFrames = 0; 
   lastProgress = 0;
+  pthread_mutex_init(&frameLock, NULL);
+
   socket.connect("ipc:///tmp/progressIn.ipc");
 }
 
@@ -42,9 +44,13 @@ void Spool::pushItem(QItem *item) {
 
   Q->putTail(item);
 
+  pthread_mutex_lock(&frameLock);
   aFrames += item->size / channels / 4;
+  if(started)
+    oFrames += item->size / channels / 4;
+  pthread_mutex_unlock(&frameLock);
 
-  if (aFrames - lastProgress > sample_rate / 4) {
+  if (aFrames - lastProgress > sample_rate / 2) {
     lastProgress = aFrames;
     bufLength = Q->getSize() * item->size / 4 / channels / sample_rate;
     sprintf(progMsg, "{\"t\":%.0f, \"m\":%d, \"b\":%d}", floor(oFrames / sample_rate), 
@@ -58,7 +64,11 @@ void Spool::start(char *savePath) {
   filename = (char *)malloc(strlen(savePath));
   strcpy(filename, savePath);
 
+  pthread_mutex_lock(&frameLock);
+  oFrames += (Q->getSize() * Q->bufSize()) / 4 / channels;
   started = true;
+  pthread_mutex_unlock(&frameLock);
+
   // start write to disk
   pthread_create(&sthread, NULL, (void * (*)(void *))doWrite, this);
 }
@@ -100,7 +110,6 @@ void Spool::doWrite(void *foo) {
     ts.tv_nsec += 100000000;
     i = obj->Q->getHead(&ts);
     if (i != NULL) {
-      obj->oFrames += i->size / obj->channels / 4;
       // write QItem->buf to disk
       if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i->buf,
                                                     i->size / obj->channels / 4)){

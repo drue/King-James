@@ -87,6 +87,7 @@ void Meter::run(void *foo) {
 
   while(1) {
     pthread_cond_wait (obj->cond, obj->lock);
+    //printf("awake\n");
     size_t size = jack_ringbuffer_read_space(obj->ring);
     
     jack_ringbuffer_get_read_vector(obj->ring, regions);
@@ -171,6 +172,7 @@ void Meter::shipItem(QItem*item, FLAC__int32*tMax, zmq::socket_t *socket) {
   strcat(str, "]");
   pthread_mutex_unlock(&maxLock);
   spool->pushItem(item);
+  //printf("%s\n", str);
   zmq::message_t msg(str, strlen(str), NULL);
   socket->send(msg);
 }
