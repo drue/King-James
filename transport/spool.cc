@@ -91,12 +91,6 @@ void Spool::doWrite(void *foo) {
   FLAC__stream_encoder_set_channels(encoder, obj->channels);
   FLAC__stream_encoder_set_bits_per_sample(encoder, obj->bits_per_sample);
   FLAC__stream_encoder_set_sample_rate(encoder, obj->sample_rate);
-  /*FLAC__stream_encoder_set_do_mid_side_stereo(encoder, 0);
-  FLAC__stream_encoder_set_blocksize(encoder, 4608);
-  FLAC__stream_encoder_set_max_lpc_order(encoder, 0);
-  FLAC__stream_encoder_set_min_residual_partition_order(encoder, 3);
-  FLAC__stream_encoder_set_max_residual_partition_order(encoder, 3);
-  */
   initted = FLAC__stream_encoder_init_FILE(encoder, output, NULL, NULL);
   if (initted != FLAC__STREAM_ENCODER_INIT_STATUS_OK)
     {
