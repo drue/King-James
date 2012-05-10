@@ -82,7 +82,7 @@ void Spool::doWrite(void *foo) {
   unsigned int s;
   struct timespec ts;
 
-  output = fopen64(obj->filename, "w+");
+  output = fopen64(obj->filename, "w+b");
 
   // only cache beginning of this huge file we're about to write out and not reuse
   posix_fadvise(fileno(output), 8192, 0, POSIX_FADV_NOREUSE);
