@@ -30,11 +30,14 @@ class Spool {
   bool finished;
   bool started;
   pthread_mutex_t frameLock;
+  pthread_mutex_t finishLock;
+  pthread_cond_t finishCond;
 
   virtual void pushItem(QItem *item);
   virtual QItem *getEmpty();
   virtual void start(char *savePath);
   virtual void finish();
+  virtual void wait();
 };
 
 #endif

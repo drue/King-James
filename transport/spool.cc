@@ -21,18 +21,29 @@ Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, u
   oFrames = 0;
   aFrames = 0; 
   lastProgress = 0;
+  filename = NULL;
   pthread_mutex_init(&frameLock, NULL);
-
+  pthread_mutex_init(&finishLock, NULL);
+  pthread_cond_init(&finishCond, NULL);
   socket.connect("ipc:///tmp/progressIn.ipc");
 }
 
 Spool::~Spool() {
   delete(Q);
-  free(filename);
+  if(filename != NULL)
+    free(filename);
 }
 
 void Spool::finish() {
+  pthread_mutex_lock(&finishLock);
   finished = true;
+  pthread_mutex_unlock(&finishLock);
+}
+
+void Spool::wait() {
+  pthread_mutex_lock(&finishLock);
+  pthread_cond_wait(&finishCond, &finishLock);
+  pthread_mutex_unlock(&finishLock);
 }
 
 QItem *Spool::getEmpty() {
@@ -119,6 +130,7 @@ void Spool::doWrite(void *foo) {
   fsync(fileno(output));
   FLAC__stream_encoder_delete(encoder);
 
+  pthread_cond_broadcast(&obj->finishCond);
 
   delete obj;
 }
