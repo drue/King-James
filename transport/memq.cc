@@ -101,7 +101,6 @@ QItem *MemQ::getHead(struct timespec *wait) {
   if (foo != NULL) {
 	head = foo->next;
 	foo->next = NULL;
-    assert(size != 0);
     size -= 1;
   }
   if (foo == tail) {
@@ -124,6 +123,7 @@ void MemQ::putTail(QItem *i) {
 	tail = i;
   }
 
+  tail->next = NULL;
   size += 1;
 
   if (size <= max_size)
