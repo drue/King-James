@@ -1,6 +1,7 @@
 package "alsa"
 package "libasound2-dev"
 package "libflac-dev"
+package "libflac++-dev"
 package "build-essential"
 package "python2.7-dev"
 package "python-pip"
@@ -10,15 +11,9 @@ package "libzmq-dev"
 package "libevent-dev"
 package "gdb"
 package "htop"
-#package "jackd2"
 package "libjack-dev"
-#package "jack-tools"
-package "libgtest-dev"
-
-#file "/etc/jackdrc" do
-#  content "/usr/bin/jackd  -Z -d alsa -d hw:miniStreamer -C -n 24"
-#end
-
+package "avahi-daemon"
+package "unzip"
 
 python_pip "pyzmq" do
   action :install
@@ -31,14 +26,3 @@ end
 python_pip "git+https://github.com/mrjoes/tornadio2.git" do
   action :install
 end
-
-git "/home/ubuntu/src" do
-  repository "https://github.com/drue/King-James.git"
-  action :sync
-end
-
-### building images
-package "uboot-mkimage"
-package "btrfs-tools"
-package "pv"
-
