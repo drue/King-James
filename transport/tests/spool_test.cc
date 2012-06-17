@@ -1,9 +1,9 @@
 #include <stdlib.h>
+#include <arpa/inet.h>
 
 #include "gtest/gtest.h"
 #include "FLAC++/metadata.h"
 #include "spool.h"
-#include "memq.h"
 
 class SpoolTest : public ::testing::Test {
 public:
@@ -23,7 +23,7 @@ TEST_F(SpoolTest, DeallocUnused) {
 TEST_F(SpoolTest, Null) {
 
   Spool s(5, 128, 24, 48000, 2);
-  const char *emptymd5 = "\xd4\x1d\x8c\xd9\x8f\x00\xb2\x04\xe9\x80\x09\x98\xec\xf8\x42\x7e";
+  const unsigned char *emptymd5 = (const unsigned char *)"\xd4\x1d\x8c\xd9\x8f\x00\xb2\x04\xe9\x80\x09\x98\xec\xf8\x42\x7e";
 
   s.start(f);
   s.finish();
@@ -37,20 +37,48 @@ TEST_F(SpoolTest, Null) {
 }
 
 TEST_F(SpoolTest, OneItem) {
-  FLAC__uint32 data;  
-  Spool s(128*5, 128, 24, 48000, 2);
-
+  const unsigned char *correct = (const unsigned char *)"\x7f\x5d\xb3\x3c\x5e\xc6\x27\x3c\xa2\x13\x55\x5b\xe8\x60\x00\x39";
+  Spool s(5, 128, 24, 48000, 2);
+  
   s.start(f);
-  QItem *item = s.getEmpty();
+
+  const buffer& item = s.getEmpty();
   int i;
-  for(i=0;i<item->bufsize;i++) {
-    item->buf[i] = i;
-  }
-  item->size = i;
-
+  for (i=0; i*4 < item.size; i++) {
+      item.buf[i] = i;
+    }
   s.pushItem(item);
-
   s.finish();
   s.wait();
-  // test file
+       
+  FLAC::Metadata::StreamInfo si;
+  FLAC::Metadata::get_streaminfo(f, si);
+  const unsigned char *sum = si.get_md5sum();
+  for(int i=0;i<16;i++) {
+    ASSERT_EQ(correct[i], sum[i]);
+  }
+}
+
+TEST_F(SpoolTest, FiveItems) {
+  const unsigned char *correct = (const unsigned char *)"\xae\x20\x76\x57\x55\x7a\xa6\xa7\x19\xcd\x58\x68\x5d\xfc\x76\xdb"; // ints going from 0 to 5*32
+  Spool s(5, 128, 24, 48000, 2);
+  
+  s.start(f);
+
+  for(int x=0;x<5;x++) {
+    const buffer& item = s.getEmpty();
+    for (int i=0; i*4 < item.size; i++) {
+        item.buf[i] = x*32 + i;
+      }
+           s.pushItem(item);
+         }
+  s.finish();
+  s.wait();
+       
+  FLAC::Metadata::StreamInfo si;
+  FLAC::Metadata::get_streaminfo(f, si);
+  const unsigned char *sum = si.get_md5sum();
+  for(int i=0;i<16;i++) {
+    ASSERT_EQ(correct[i], sum[i]);
+  }
 }

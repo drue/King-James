@@ -1,13 +1,21 @@
+#include <deque>
+
 #include <pthread.h>
 #include <semaphore.h>
 #include <time.h>
 
 #include <zmq.hpp>
 
-#include "memq.h"
-
 #ifndef __SPOOL__
 #define __SPOOL__
+
+class buffer {
+ public:
+  buffer(unsigned int bsize);
+  ~buffer();
+  int *buf;
+  unsigned int size;
+};
 
 class Spool {
  protected:
@@ -25,19 +33,19 @@ class Spool {
   Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int channels);
   ~Spool();
   char *filename;
-  unsigned int bits_per_sample, sample_rate, channels;
-  MemQ *Q;
+  unsigned int bits_per_sample, sample_rate, channels, bufferSize, maxQSize;
+  std::deque<buffer>Q;
   bool finished;
   bool started;
-  pthread_mutex_t frameLock;
+  pthread_mutex_t qLock;
   pthread_mutex_t finishLock;
   pthread_cond_t finishCond;
 
-  virtual void pushItem(QItem *item);
-  virtual QItem *getEmpty();
-  virtual void start(char *savePath);
-  virtual void finish();
-  virtual void wait();
+  void pushItem(const buffer &item);
+  const buffer &getEmpty();
+  void start(char *savePath);
+  void finish();
+  void wait();
 };
 
 #endif

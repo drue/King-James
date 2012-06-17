@@ -71,10 +71,6 @@ gtest.a : gtest-all.o
 gtest_main.a : gtest-all.o gtest_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
-
-memq.o : memq.cc memq.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c memq.cc
-
 spool.o : spool.cc spool.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c spool.cc
 
@@ -82,5 +78,5 @@ spool_test.o : $(TEST_DIR)/spool_test.cc \
                      spool.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(USER_DIR) -c $(TEST_DIR)/spool_test.cc
 
-spool_test : memq.o spool.o spool_test.o gtest_main.a
+spool_test : spool.o spool_test.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -lzmq  -o $@
