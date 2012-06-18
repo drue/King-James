@@ -47,6 +47,9 @@ all : $(TESTS)
 clean :
 	rm -f $(TESTS) gtest.a gtest_main.a *.o
 
+test: all
+	./spool_test
+
 # Builds gtest.a and gtest_main.a.
 
 # Usually you shouldn't tweak such internal variables, indicated by a

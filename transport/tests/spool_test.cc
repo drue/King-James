@@ -5,6 +5,19 @@
 #include "FLAC++/metadata.h"
 #include "spool.h"
 
+/*
+*************
+** FLAC md5sum is computed from byte aligned, little endian data
+** 3 bytes per sample for 24 bits, 2 bytes for 16 bits
+** however, data is fed to FLAC with 4 byte unsigned ints
+*************
+*/
+
+/*
+** test data consists of monotonically increasing integers from zero, so out-of-order or missing samples can be 
+** easily detected
+*/
+
 class SpoolTest : public ::testing::Test {
 public:
   char tmpl[80];
@@ -45,8 +58,8 @@ TEST_F(SpoolTest, OneItem) {
   const buffer& item = s.getEmpty();
   int i;
   for (i=0; i*4 < item.size; i++) {
-      item.buf[i] = i;
-    }
+    item.buf[i] = i;
+  }
   s.pushItem(item);
   s.finish();
   s.wait();
@@ -68,10 +81,105 @@ TEST_F(SpoolTest, FiveItems) {
   for(int x=0;x<5;x++) {
     const buffer& item = s.getEmpty();
     for (int i=0; i*4 < item.size; i++) {
-        item.buf[i] = x*32 + i;
-      }
-           s.pushItem(item);
-         }
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+  s.finish();
+  s.wait();
+       
+  FLAC::Metadata::StreamInfo si;
+  FLAC::Metadata::get_streaminfo(f, si);
+  const unsigned char *sum = si.get_md5sum();
+  for(int i=0;i<16;i++) {
+    ASSERT_EQ(correct[i], sum[i]);
+  }
+}
+
+TEST_F(SpoolTest, SpoolUp5) {
+  const unsigned char *correct = (const unsigned char *)"\xae\x20\x76\x57\x55\x7a\xa6\xa7\x19\xcd\x58\x68\x5d\xfc\x76\xdb"; // ints going from 0 to 5*32
+  Spool s(5, 128, 24, 48000, 2);
+  
+
+  for(int x=0;x<5;x++) {
+    const buffer& item = s.getEmpty();
+    for (int i=0; i*4 < item.size; i++) {
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+
+  s.start(f);
+  s.finish();
+  s.wait();
+       
+  FLAC::Metadata::StreamInfo si;
+  FLAC::Metadata::get_streaminfo(f, si);
+  const unsigned char *sum = si.get_md5sum();
+  for(int i=0;i<16;i++) {
+    ASSERT_EQ(correct[i], sum[i]);
+  }
+}
+
+TEST_F(SpoolTest, HalfAndHalf) {
+  const unsigned char *correct = (const unsigned char *)"\x70\xd3\x26\x79\xb7\x2b\xe8\xcf\x6f\x7d\x61\x50\x4d\xdd\x06\x03"; // ints going from 0 to 10*32
+  Spool s(5, 128, 24, 48000, 2);
+  
+
+  for(int x=0;x<5;x++) {
+    const buffer& item = s.getEmpty();
+    for (int i=0; i*4 < item.size; i++) {
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+
+  s.start(f);
+
+  for(int x=5;x<10;x++) {
+    const buffer& item = s.getEmpty();
+    for (int i=0; i*4 < item.size; i++) {
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+
+
+  s.finish();
+  s.wait();
+       
+  FLAC::Metadata::StreamInfo si;
+  FLAC::Metadata::get_streaminfo(f, si);
+  const unsigned char *sum = si.get_md5sum();
+  for(int i=0;i<16;i++) {
+    ASSERT_EQ(correct[i], sum[i]);
+  }
+}
+
+TEST_F(SpoolTest, HalfAndHalf16) {
+  const unsigned char *correct = (const unsigned char *)"\x79\x25\xec\x2c\xdd\x77\xe0\x56\x72\x45\x1f\x83\xf6\x35\xa0\x4a"; // shorts going from 0 to 10*32
+  Spool s(5, 128, 16, 48000, 2);
+  
+
+  for(int x=0;x<5;x++) {
+    const buffer& item = s.getEmpty();
+    for (int i=0; i*4 < item.size; i++) {
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+
+  s.start(f);
+
+  for(int x=5;x<10;x++) {
+    const buffer& item = s.getEmpty();
+    for (int i=0; i*4 < item.size; i++) {
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+
+
   s.finish();
   s.wait();
        
