@@ -59,12 +59,12 @@ void Spool::wait() {
   pthread_mutex_unlock(&finishLock);
 }
 
-const buffer& Spool::getEmpty() {
+buffer& Spool::getEmpty() {
   buffer *buf = new buffer(bufferSize);
   return *buf;
 }
 
-void Spool::pushItem(const buffer& buf) {
+void Spool::pushItem(buffer& buf) {
   unsigned int bufLength;
 
   pthread_mutex_lock(&qLock);

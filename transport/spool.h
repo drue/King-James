@@ -41,8 +41,8 @@ class Spool {
   pthread_mutex_t finishLock;
   pthread_cond_t finishCond;
 
-  void pushItem(const buffer &item);
-  const buffer &getEmpty();
+  void pushItem(buffer &item);
+  buffer &getEmpty();
   void start(char *savePath);
   void finish();
   void wait();

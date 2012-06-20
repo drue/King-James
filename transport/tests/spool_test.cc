@@ -55,8 +55,8 @@ TEST_F(SpoolTest, OneItem) {
   
   s.start(f);
 
-  const buffer& item = s.getEmpty();
-  int i;
+  buffer& item = s.getEmpty();
+  unsigned int i;
   for (i=0; i*4 < item.size; i++) {
     item.buf[i] = i;
   }
@@ -79,8 +79,8 @@ TEST_F(SpoolTest, FiveItems) {
   s.start(f);
 
   for(int x=0;x<5;x++) {
-    const buffer& item = s.getEmpty();
-    for (int i=0; i*4 < item.size; i++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
       item.buf[i] = x*32 + i;
     }
     s.pushItem(item);
@@ -102,8 +102,8 @@ TEST_F(SpoolTest, SpoolUp5) {
   
 
   for(int x=0;x<5;x++) {
-    const buffer& item = s.getEmpty();
-    for (int i=0; i*4 < item.size; i++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
       item.buf[i] = x*32 + i;
     }
     s.pushItem(item);
@@ -125,10 +125,10 @@ TEST_F(SpoolTest, HalfAndHalf) {
   const unsigned char *correct = (const unsigned char *)"\x70\xd3\x26\x79\xb7\x2b\xe8\xcf\x6f\x7d\x61\x50\x4d\xdd\x06\x03"; // ints going from 0 to 10*32
   Spool s(5, 128, 24, 48000, 2);
   
-
+  // fill up the buffer reroll buffer, start, then send another five below
   for(int x=0;x<5;x++) {
-    const buffer& item = s.getEmpty();
-    for (int i=0; i*4 < item.size; i++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
       item.buf[i] = x*32 + i;
     }
     s.pushItem(item);
@@ -137,8 +137,8 @@ TEST_F(SpoolTest, HalfAndHalf) {
   s.start(f);
 
   for(int x=5;x<10;x++) {
-    const buffer& item = s.getEmpty();
-    for (int i=0; i*4 < item.size; i++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
       item.buf[i] = x*32 + i;
     }
     s.pushItem(item);
@@ -162,8 +162,8 @@ TEST_F(SpoolTest, HalfAndHalf16) {
   
 
   for(int x=0;x<5;x++) {
-    const buffer& item = s.getEmpty();
-    for (int i=0; i*4 < item.size; i++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
       item.buf[i] = x*32 + i;
     }
     s.pushItem(item);
@@ -172,8 +172,78 @@ TEST_F(SpoolTest, HalfAndHalf16) {
   s.start(f);
 
   for(int x=5;x<10;x++) {
-    const buffer& item = s.getEmpty();
-    for (int i=0; i*4 < item.size; i++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+
+
+  s.finish();
+  s.wait();
+       
+  FLAC::Metadata::StreamInfo si;
+  FLAC::Metadata::get_streaminfo(f, si);
+  const unsigned char *sum = si.get_md5sum();
+  for(int i=0;i<16;i++) {
+    ASSERT_EQ(correct[i], sum[i]);
+  }
+}
+
+TEST_F(SpoolTest, LoseOne) {
+  const unsigned char *correct = (const unsigned char *)"\xf0\xa4\x66\x66\x73\x60\xe4\xa4\xfd\x22\x9f\xe0\xba\xf0\x68\xf6"; // ints going from 32 to 11*32
+  Spool s(5, 128, 24, 48000, 2);
+  
+  // fill up the buffer reroll buffer, start, then send another five below
+  for(int x=0;x<6;x++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+
+  s.start(f);
+
+  for(int x=6;x<11;x++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+
+
+  s.finish();
+  s.wait();
+       
+  FLAC::Metadata::StreamInfo si;
+  FLAC::Metadata::get_streaminfo(f, si);
+  const unsigned char *sum = si.get_md5sum();
+  for(int i=0;i<16;i++) {
+    ASSERT_EQ(correct[i], sum[i]);
+  }
+}
+
+TEST_F(SpoolTest, LoseFive) {
+  const unsigned char *correct = (const unsigned char *)"\xc5\x72\x99\x44\xbd\x6f\x49\x1f\x24\x79\x6b\xf8\x7f\x8a\x60\xe0"; // ints going from 5*32 to 16*32
+  Spool s(5, 128, 24, 48000, 2);
+  
+  // fill up the buffer reroll buffer, start, then send another five below
+  for(int x=0;x<10;x++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
+      item.buf[i] = x*32 + i;
+    }
+    s.pushItem(item);
+  }
+
+  s.start(f);
+
+  for(int x=10;x<16;x++) {
+    buffer& item = s.getEmpty();
+    for (unsigned int i=0; i*4 < item.size; i++) {
       item.buf[i] = x*32 + i;
     }
     s.pushItem(item);

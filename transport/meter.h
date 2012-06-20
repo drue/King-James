@@ -22,7 +22,7 @@ class Meter {
 
 
   static void run(void *foo);
-  void shipItem(QItem*i, FLAC__int32*tMax, zmq::socket_t *socket);
+  void shipItem(buffer &i, FLAC__int32*tMax, zmq::socket_t *socket);
 
  public:
   virtual ~Meter();

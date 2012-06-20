@@ -7,7 +7,6 @@
 #include <zmq.hpp>
 
 #include "meter.h"
-#include "memq.h"
 
 #define DECAY 1700
 
@@ -77,7 +76,7 @@ void Meter::run(void *foo) {
   tMax = (FLAC__int32 *)malloc(sizeof(obj->chans * sizeof(FLAC__int32)));
 
   jack_ringbuffer_data_t regions[2];
-  QItem *o = obj->spool->getEmpty();
+  buffer &o = obj->spool->getEmpty();
 
   for(i=0;i<obj->chans;i++)
     tMax[i] = 0;
@@ -94,7 +93,7 @@ void Meter::run(void *foo) {
     frames = (regions[0].len + regions[1].len)  / 4 / obj->chans;
 
     is = 0;
-    os = o->size;
+    os = 0;
 
     for(unsigned frame=0;frame < frames;frame++) {
       for(c=0;c < obj->chans;c++) {
@@ -106,25 +105,23 @@ void Meter::run(void *foo) {
           x = is - regions[0].len;
           ibuf = (FLAC__int32*)regions[1].buf;
         }
-        t = o->buf[os/4] = ibuf[x/4];
+        t = o.buf[os/4] = ibuf[x/4];
         if (abs(t) > tMax[c]) {
           tMax[c] = abs(t);
         }
         os += 4;
         is += 4;
-        o->size += 4;
       }
-      if (o->size == o->bufsize) {
-        QItem *z = o;
-        o = obj->spool->getEmpty();
-        obj->shipItem(z, tMax, &socket);
+      if (o.size == os) {
+        obj->shipItem(o, tMax, &socket);
         //printf("shipped, freespace: %d\n", jack_ringbuffer_write_space(obj->ring));
-        os = 0;
         for(unsigned z=0;z < obj->chans;z++) {
           tMax[z] = 0;
         }
+        o = obj->spool->getEmpty();
+        os = 0;
       }
-      else if (o->size > o->bufsize) {
+      else if (os > o.size) {
         printf("OVERFLOW\n");
         exit(-1);
       }
@@ -135,14 +132,14 @@ void Meter::run(void *foo) {
   free(tMax);
 }
 
-void Meter::shipItem(QItem*item, FLAC__int32*tMax, zmq::socket_t *socket) {
+void Meter::shipItem(buffer &item, FLAC__int32*tMax, zmq::socket_t *socket) {
   int millis;
   int decay;
   char str[1024] = "";
   char tmp[64];
   FLAC__int32 x;
 
-  millis = item->size / 4 / chans / rate * 1000;
+  millis = item.size / 4 / chans / rate * 1000;
   decay = 8388608 * millis / DECAY;
 
   pthread_mutex_lock(&maxLock);	
