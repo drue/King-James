@@ -19,7 +19,8 @@ class Meter {
   pthread_mutex_t maxLock;
   FLAC__int32 *max;
   FLAC__int32 *prev;
-
+  zmq::socket_t *socket;
+  zmq::context_t *ctx;
 
   static void run(void *foo);
   void shipItem(buffer &i, FLAC__int32*tMax, zmq::socket_t *socket);
@@ -29,6 +30,8 @@ class Meter {
 
   Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q, Spool *aSpool, pthread_mutex_t *lock, pthread_cond_t *cond);
   long getmaxn(unsigned int n);
+  virtual void tick();
+  void start();
   void resetmax();
   void switchSpool(Spool *newSpool);
 };

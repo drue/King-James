@@ -25,44 +25,51 @@ public:
 
   virtual void TearDown() {
     jack_ringbuffer_free(ring);
+    pthread_mutex_destroy(&meter_lock);
+    pthread_cond_destroy(&data_ready);
   }
-};
 
-TEST_F(MeterTest, Pumpy) {
-  const int count = 32;
-  Spool s(5, 128, 24, 48000, 2);
-  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
-
-  s.start(f);
-  usleep(10000);
-  jack_ringbuffer_get_write_vector(ring, writevec);
-  int n = std::min((int)writevec[0].len, count * 4);
-  for (int i = 0; i*4<n;i++){
-    memcpy(writevec[0].buf+(i*4), &i, 4);
-  }
-  jack_ringbuffer_write_advance(ring, n);
+  virtual void pushBlock(int start, int count) {
+    jack_ringbuffer_get_write_vector(ring, writevec);
+    int n = std::min((int)writevec[0].len, count * 4);
+    for (int i = start; i*4<n+start*4;i++){
+      memcpy(writevec[0].buf+(i*4), &i, 4);
+    }
+    jack_ringbuffer_write_advance(ring, n);
   
-  n = count * 4 - n;
-  if (n > 0) {
+    n = count * 4 - n;
+    if (n > 0) {
       for (int i = 0; i*4<n;i++){
         memcpy(writevec[1].buf+(i*4), &i, 4);
       }
       jack_ringbuffer_write_advance(ring, n);
+    }
+
+    pthread_cond_signal (&data_ready);
+    pthread_mutex_unlock (&meter_lock);
+
   }
 
-  pthread_cond_signal (&data_ready);
-  pthread_mutex_unlock (&meter_lock);
-  usleep(10000);
+  virtual void verifyMD5(const unsigned char *correct) {
+    FLAC::Metadata::StreamInfo si;
+    FLAC::Metadata::get_streaminfo(f, si);
+    const unsigned char *sum = si.get_md5sum();
+    for(int i=0;i<16;i++) {
+      ASSERT_EQ(correct[i], sum[i]);
+    }    
+  }
+};
 
+TEST_F(MeterTest, PumpOne) {
+  const int count = 32;
+  Spool s(5, count*4, 24, 48000, 2);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+
+  pushBlock(0, count);
+  m.tick();
+  s.start(f);
   s.finish();
   s.wait();
-
   const unsigned char *correct = (const unsigned char *)"\x7f\x5d\xb3\x3c\x5e\xc6\x27\x3c\xa2\x13\x55\x5b\xe8\x60\x00\x39";
-
-  FLAC::Metadata::StreamInfo si;
-  FLAC::Metadata::get_streaminfo(f, si);
-  const unsigned char *sum = si.get_md5sum();
-  for(int i=0;i<16;i++) {
-    ASSERT_EQ(correct[i], sum[i]);
-  }    
+  verifyMD5(correct);
 }

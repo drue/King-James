@@ -26,12 +26,20 @@ Meter::Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q,
   cond = c;
   rate = sample_rate;
 
-  pthread_create(&sthread, NULL, (void * (*)(void *))run, this);
+  ctx = new zmq::context_t(1);
+  socket = new zmq::socket_t(*ctx, ZMQ_PUB);
+  socket->bind("ipc:///tmp/peaks.ipc");
 }
 
 Meter::~Meter() {
   free (max);
   free (prev);
+  delete(socket);
+  delete(ctx);
+}
+
+void Meter::start() {
+  pthread_create(&sthread, NULL, (void * (*)(void *))run, this);
 }
 
 void Meter::switchSpool(Spool *newSpool) {
@@ -64,74 +72,69 @@ float todBFS(FLAC__int32 sample)  {
 
 void Meter::run(void *foo) {
   Meter *obj = (Meter *)foo;
+  
+  pthread_mutex_lock(obj->lock);
+
+  while(1) {
+    //printf("awake\n");
+    obj->tick();
+    pthread_cond_wait (obj->cond, obj->lock);
+  }
+  pthread_mutex_unlock(obj->lock);
+}
+
+void Meter::tick() {
   unsigned is, os, i, c;
   FLAC__int32 *tMax, *ibuf, t;
   unsigned int frames;
-  zmq::context_t ctx(1);
-  zmq::socket_t socket(ctx, ZMQ_PUB);
   unsigned x;
-  
-  socket.bind("ipc:///tmp/peaks.ipc");
-  
-  tMax = (FLAC__int32 *)malloc(sizeof(obj->chans * sizeof(FLAC__int32)));
-
   jack_ringbuffer_data_t regions[2];
-  buffer &o = obj->spool->getEmpty();
 
-  for(i=0;i<obj->chans;i++)
+  tMax = (FLAC__int32 *)malloc(sizeof(chans * sizeof(FLAC__int32)));
+
+  buffer &o = spool->getEmpty();
+  for(i=0;i<chans;i++)
     tMax[i] = 0;
 
-  pthread_mutex_lock(obj->lock);
-  printf("meter running\n");
-
-  while(1) {
-    pthread_cond_wait (obj->cond, obj->lock);
-    //printf("awake\n");
-    size_t size = jack_ringbuffer_read_space(obj->ring);
+    size_t size = jack_ringbuffer_read_space(ring);
     
-    jack_ringbuffer_get_read_vector(obj->ring, regions);
-    frames = (regions[0].len + regions[1].len)  / 4 / obj->chans;
+    jack_ringbuffer_get_read_vector(ring, regions);
+    frames = (regions[0].len + regions[1].len)  / 4 / chans;
 
     is = 0;
     os = 0;
 
-    for(unsigned frame=0;frame < frames;frame++) {
-      for(c=0;c < obj->chans;c++) {
-        if(is < regions[0].len) {
-          x = is;
-          ibuf = (FLAC__int32*)regions[0].buf;
+    if (frames > 0) {
+      for(unsigned frame=0;frame < frames;frame++) {
+        for(c=0;c < chans;c++) {
+          if(is < regions[0].len) {
+            x = is;
+            ibuf = (FLAC__int32*)regions[0].buf;
+          }
+          else {
+            x = is - regions[0].len;
+            ibuf = (FLAC__int32*)regions[1].buf;
+          }
+          t = o.buf[os/4] = ibuf[x/4];
+          if (abs(t) > tMax[c]) {
+            tMax[c] = abs(t);
+          }
+          os += 4;
+          is += 4;
         }
-        else {
-          x = is - regions[0].len;
-          ibuf = (FLAC__int32*)regions[1].buf;
+        if (o.size == os) {
+          shipItem(o, tMax, socket);
+          //printf("shipped, freespace: %d\n", jack_ringbuffer_write_space(ring));
         }
-        t = o.buf[os/4] = ibuf[x/4];
-        if (abs(t) > tMax[c]) {
-          tMax[c] = abs(t);
+        else if (os > o.size) {
+          printf("OVERFLOW\n");
+          exit(-1);
         }
-        os += 4;
-        is += 4;
       }
-      if (o.size == os) {
-        obj->shipItem(o, tMax, &socket);
-        //printf("shipped, freespace: %d\n", jack_ringbuffer_write_space(obj->ring));
-        for(unsigned z=0;z < obj->chans;z++) {
-          tMax[z] = 0;
-        }
-        o = obj->spool->getEmpty();
-        os = 0;
-      }
-      else if (os > o.size) {
-        printf("OVERFLOW\n");
-        exit(-1);
-      }
+      jack_ringbuffer_read_advance(ring, is);
     }
-    jack_ringbuffer_read_advance(obj->ring, is);
-  }
-  pthread_mutex_unlock(obj->lock);
   free(tMax);
 }
-
 void Meter::shipItem(buffer &item, FLAC__int32*tMax, zmq::socket_t *socket) {
   int millis;
   int decay;
