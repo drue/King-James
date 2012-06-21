@@ -27,6 +27,15 @@ public:
     strncpy(tmpl, "/tmp/SpoolTest.XXXXXX", sizeof(tmpl));
     f = mktemp(tmpl);
   }
+
+  virtual void verifyMD5(const unsigned char *correct) {
+    FLAC::Metadata::StreamInfo si;
+    FLAC::Metadata::get_streaminfo(f, si);
+    const unsigned char *sum = si.get_md5sum();
+    for(int i=0;i<16;i++) {
+      ASSERT_EQ(correct[i], sum[i]);
+    }    
+  }
 };
 
 TEST_F(SpoolTest, DeallocUnused) {
@@ -41,12 +50,7 @@ TEST_F(SpoolTest, Null) {
   s.start(f);
   s.finish();
   s.wait();
-  FLAC::Metadata::StreamInfo si;
-  FLAC::Metadata::get_streaminfo(f, si);
-  const unsigned char *sum = si.get_md5sum();
-  for(int i=0;i<16;i++) {
-    ASSERT_EQ(emptymd5[i], sum[i]);
-  }
+  verifyMD5(emptymd5);
 }
 
 TEST_F(SpoolTest, OneItem) {
@@ -64,12 +68,7 @@ TEST_F(SpoolTest, OneItem) {
   s.finish();
   s.wait();
        
-  FLAC::Metadata::StreamInfo si;
-  FLAC::Metadata::get_streaminfo(f, si);
-  const unsigned char *sum = si.get_md5sum();
-  for(int i=0;i<16;i++) {
-    ASSERT_EQ(correct[i], sum[i]);
-  }
+  verifyMD5(correct);
 }
 
 TEST_F(SpoolTest, FiveItems) {
@@ -88,12 +87,7 @@ TEST_F(SpoolTest, FiveItems) {
   s.finish();
   s.wait();
        
-  FLAC::Metadata::StreamInfo si;
-  FLAC::Metadata::get_streaminfo(f, si);
-  const unsigned char *sum = si.get_md5sum();
-  for(int i=0;i<16;i++) {
-    ASSERT_EQ(correct[i], sum[i]);
-  }
+  verifyMD5(correct);
 }
 
 TEST_F(SpoolTest, SpoolUp5) {
@@ -113,12 +107,7 @@ TEST_F(SpoolTest, SpoolUp5) {
   s.finish();
   s.wait();
        
-  FLAC::Metadata::StreamInfo si;
-  FLAC::Metadata::get_streaminfo(f, si);
-  const unsigned char *sum = si.get_md5sum();
-  for(int i=0;i<16;i++) {
-    ASSERT_EQ(correct[i], sum[i]);
-  }
+  verifyMD5(correct);
 }
 
 TEST_F(SpoolTest, HalfAndHalf) {
@@ -148,12 +137,7 @@ TEST_F(SpoolTest, HalfAndHalf) {
   s.finish();
   s.wait();
        
-  FLAC::Metadata::StreamInfo si;
-  FLAC::Metadata::get_streaminfo(f, si);
-  const unsigned char *sum = si.get_md5sum();
-  for(int i=0;i<16;i++) {
-    ASSERT_EQ(correct[i], sum[i]);
-  }
+  verifyMD5(correct);
 }
 
 TEST_F(SpoolTest, HalfAndHalf16) {
@@ -183,12 +167,7 @@ TEST_F(SpoolTest, HalfAndHalf16) {
   s.finish();
   s.wait();
        
-  FLAC::Metadata::StreamInfo si;
-  FLAC::Metadata::get_streaminfo(f, si);
-  const unsigned char *sum = si.get_md5sum();
-  for(int i=0;i<16;i++) {
-    ASSERT_EQ(correct[i], sum[i]);
-  }
+  verifyMD5(correct);
 }
 
 TEST_F(SpoolTest, LoseOne) {
@@ -218,12 +197,7 @@ TEST_F(SpoolTest, LoseOne) {
   s.finish();
   s.wait();
        
-  FLAC::Metadata::StreamInfo si;
-  FLAC::Metadata::get_streaminfo(f, si);
-  const unsigned char *sum = si.get_md5sum();
-  for(int i=0;i<16;i++) {
-    ASSERT_EQ(correct[i], sum[i]);
-  }
+  verifyMD5(correct);
 }
 
 TEST_F(SpoolTest, LoseFive) {
@@ -253,10 +227,5 @@ TEST_F(SpoolTest, LoseFive) {
   s.finish();
   s.wait();
        
-  FLAC::Metadata::StreamInfo si;
-  FLAC::Metadata::get_streaminfo(f, si);
-  const unsigned char *sum = si.get_md5sum();
-  for(int i=0;i<16;i++) {
-    ASSERT_EQ(correct[i], sum[i]);
-  }
+  verifyMD5(correct);
 }
