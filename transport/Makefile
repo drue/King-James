@@ -90,4 +90,4 @@ spool_test : spool.o spool_test.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -lzmq  -o $@
 
 meter_test : meter.o spool.o meter_test.o gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -ljack -lzmq  -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -ljack -lzmq -lcrypto -o $@

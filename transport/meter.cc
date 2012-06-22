@@ -92,47 +92,49 @@ void Meter::tick() {
 
   tMax = (FLAC__int32 *)malloc(sizeof(chans * sizeof(FLAC__int32)));
 
-  buffer &o = spool->getEmpty();
+  buffer *o = &spool->getEmpty();
   for(i=0;i<chans;i++)
     tMax[i] = 0;
 
-    size_t size = jack_ringbuffer_read_space(ring);
+  size_t size = jack_ringbuffer_read_space(ring);
     
-    jack_ringbuffer_get_read_vector(ring, regions);
-    frames = (regions[0].len + regions[1].len)  / 4 / chans;
+  jack_ringbuffer_get_read_vector(ring, regions);
+  frames = (regions[0].len + regions[1].len)  / 4 / chans;
 
-    is = 0;
-    os = 0;
+  is = 0;
+  os = 0;
 
-    if (frames > 0) {
-      for(unsigned frame=0;frame < frames;frame++) {
-        for(c=0;c < chans;c++) {
-          if(is < regions[0].len) {
-            x = is;
-            ibuf = (FLAC__int32*)regions[0].buf;
-          }
-          else {
-            x = is - regions[0].len;
-            ibuf = (FLAC__int32*)regions[1].buf;
-          }
-          t = o.buf[os/4] = ibuf[x/4];
-          if (abs(t) > tMax[c]) {
-            tMax[c] = abs(t);
-          }
-          os += 4;
-          is += 4;
+  if (frames > 0) {
+    for(unsigned frame=0;frame < frames;frame++) {
+      for(c=0;c < chans;c++) {
+        if(is < regions[0].len) {
+          x = is;
+          ibuf = (FLAC__int32*)regions[0].buf;
         }
-        if (o.size == os) {
-          shipItem(o, tMax, socket);
-          //printf("shipped, freespace: %d\n", jack_ringbuffer_write_space(ring));
+        else {
+          x = is - regions[0].len;
+          ibuf = (FLAC__int32*)regions[1].buf;
         }
-        else if (os > o.size) {
-          printf("OVERFLOW\n");
-          exit(-1);
+        t = o->buf[os/4] = ibuf[x/4];
+        if (abs(t) > tMax[c]) {
+          tMax[c] = abs(t);
         }
+        os += 4;
+        is += 4;
       }
-      jack_ringbuffer_read_advance(ring, is);
+      if (o->size == os) {
+        shipItem(*o, tMax, socket);
+        os = 0;
+        o = &spool->getEmpty();
+        //printf("shipped, freespace: %d\n", jack_ringbuffer_write_space(ring));
+      }
+      else if (os > o->size) {
+        printf("OVERFLOW\n");
+        exit(-1);
+      }
     }
+    jack_ringbuffer_read_advance(ring, is);
+  }
   free(tMax);
 }
 void Meter::shipItem(buffer &item, FLAC__int32*tMax, zmq::socket_t *socket) {
