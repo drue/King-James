@@ -100,12 +100,57 @@ void AlsaTPort::xrun(void)
 	exit(-1);
 }
 
-void *AlsaTPort::process(void *user)
-{
-  AlsaTPort *tport = (AlsaTPort *) user;
+void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, snd_pcm_uframes_t frames)) {
   snd_pcm_sframes_t count, r, got;
   snd_pcm_uframes_t n;
   jack_ringbuffer_data_t writevec[2];
+
+  got = 0;
+  count =  (sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * channels / 8;
+  while(count > 0) {
+    jack_ringbuffer_get_write_vector(ring, writevec);
+    n = std::min((int)writevec[0].len / SAMPLE_SIZE / channels, (int)count);
+    r = reader(handle, writevec[0].buf, n);
+    if (r == -EPIPE) {
+      xrun();
+    } 
+    else if (r == -ESTRPIPE) {
+      suspend();
+    }
+    else if (r < 0) {
+      fprintf(stderr, "read error: %s", snd_strerror(r));
+      exit(-1);
+    }
+    else {
+      got += r;
+      count -= r;
+
+      if (count && ((r * SAMPLE_SIZE * channels) == writevec[0].len) && writevec[1].len > 0) {
+        r = reader(handle, writevec[1].buf, count);
+        if (r == -EPIPE) {
+          xrun();
+        } else if (r == -ESTRPIPE) {
+          suspend();
+        } else if (r < 0) {
+          fprintf(stderr, "read error: %s", snd_strerror(r));
+          exit(-1);
+        }
+        else {
+          got += r;
+          count -=r;
+        }
+      }
+      jack_ringbuffer_write_advance(ring, got * SAMPLE_SIZE * channels);
+      pthread_cond_signal (&(data_ready));
+      pthread_mutex_unlock (&(meter_lock));
+      got = 0;
+    }
+  }
+}
+
+void* AlsaTPort::process(void *user)
+{
+  AlsaTPort *tport = (AlsaTPort *) user;
   struct sched_param schp;
 
   prctl(PR_SET_NAME, "card drain", 0, 0, 0);
@@ -118,50 +163,12 @@ void *AlsaTPort::process(void *user)
   }
 
   while(tport->stop_flag == false) {
-    got = 0;
-    count =  (tport->sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * tport->channels / 8;
-    while(count > 0) {
-      jack_ringbuffer_get_write_vector(tport->ring, writevec);
-      n = std::min((int)writevec[0].len / SAMPLE_SIZE / tport->channels, (int)count);
-      r = snd_pcm_readi(tport->handle, writevec[0].buf, n);
-      if (r == -EPIPE) {
-        tport->xrun();
-      } else if (r == -ESTRPIPE) {
-        tport->suspend();
-      }
-      else if (r < 0) {
-        fprintf(stderr, "read error: %s", snd_strerror(r));
-        exit(-1);
-      }
-      else {
-        got += r;
-        count -= r;
-
-        if (count && ((r * SAMPLE_SIZE * tport->channels) == writevec[0].len) && writevec[1].len > 0) {
-          r = snd_pcm_readi(tport->handle, writevec[1].buf, count);
-          if (r == -EPIPE) {
-            tport->xrun();
-          } else if (r == -ESTRPIPE) {
-            tport->suspend();
-          } else if (r < 0) {
-            fprintf(stderr, "read error: %s", snd_strerror(r));
-            exit(-1);
-          }
-          else {
-            got += r;
-            count -=r;
-          }
-        }
-        jack_ringbuffer_write_advance(tport->ring, got * SAMPLE_SIZE * tport->channels);
-        pthread_cond_signal (&(tport->data_ready));
-        pthread_mutex_unlock (&(tport->meter_lock));
-        got = 0;
-      }
-    }
+   tport->tick(snd_pcm_readi);
   }
+  return NULL;
 }
 
-AlsaTPort::AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int sample_rate) {
+AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned int sample_rate, bool run=true) {
   char cardString[256];
   int err;
   snd_pcm_status_t *status;
@@ -174,12 +181,6 @@ AlsaTPort::AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int samp
   sprintf(cardString, "plughw:%s", card);
 
 
-  err=snd_pcm_open(&handle, cardString, SND_PCM_STREAM_CAPTURE, 0);
-  if (err < 0) {
-    printf("audio open error: %s\n", snd_strerror(err));
-  }
-
-  setup();
 
   // set to 1 if threads should stop
   stop_flag = false;
@@ -202,24 +203,34 @@ AlsaTPort::AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int samp
   
   spool = new Spool(prerollSize, (sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels);
   meter = new Meter(channels, sample_rate, ring, spool, &meter_lock, &data_ready);
-  meter.start();
-  pthread_create(&cthread, NULL, &process, this);
 
-  err = snd_pcm_start(handle);
-  if(err != 0) {
-    printf("did not start.\n");
-  }
+  if (run) {
+      err=snd_pcm_open(&handle, cardString, SND_PCM_STREAM_CAPTURE, 0);
+      if (err < 0) {
+        printf("audio open error: %s\n", snd_strerror(err));
+      }
+      
+      setup();
 
-  snd_pcm_status_alloca(&status);
-  if ((err = snd_pcm_status(handle, status))<0) {
-    printf("status error: %s", snd_strerror(err));
-    exit(-1);
-  }
+      meter->start();
+      pthread_create(&cthread, NULL, process, this);
+      
+      err = snd_pcm_start(handle);
+      if(err != 0) {
+        printf("did not start.\n");
+      }
 
-  printf("state: %d\n", snd_pcm_status_get_state(status));
+      snd_pcm_status_alloca(&status);
+      if ((err = snd_pcm_status(handle, status))<0) {
+        printf("status error: %s", snd_strerror(err));
+        exit(-1);
+      }
+
+      printf("state: %d\n", snd_pcm_status_get_state(status));
 #ifdef DEBUG
-  printf("ready...\n");
+      printf("ready...\n");
 #endif
+    }
 }
 
 void AlsaTPort::setup() {

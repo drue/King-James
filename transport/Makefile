@@ -33,7 +33,7 @@ CXXFLAGS += -g -Wall -Wextra
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = spool_test meter_test
+TESTS = spool_test meter_test transport_test
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -50,6 +50,7 @@ clean :
 test: all
 	./spool_test
 	./meter_test
+	./transport_test
 
 # Builds gtest.a and gtest_main.a.
 
@@ -86,8 +87,15 @@ meter_test.o : $(TEST_DIR)/meter_test.cc \
                      meter.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(USER_DIR) -c $(TEST_DIR)/meter_test.cc
 
+transport_test.o : $(TEST_DIR)/transport_test.cc \
+                     Transport.h $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(USER_DIR) -c $(TEST_DIR)/transport_test.cc
+
 spool_test : spool.o spool_test.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -lzmq  -o $@
 
 meter_test : meter.o spool.o meter_test.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -ljack -lzmq -lcrypto -o $@
+
+transport_test : Transport.o meter.o spool.o transport_test.o gtest_main.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -ljack -lzmq -lcrypto -lasound -o $@

@@ -92,7 +92,7 @@ static PyObject *newTPort(PyObject *self, PyObject *args)
   if (tport == NULL)
     return NULL;
 
-  tport->tport = new AlsaTPort(card, bps, sr);
+  tport->tport = new AlsaTPort(card, bps, sr, true);
         
   return (PyObject *)tport;
 }

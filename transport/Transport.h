@@ -10,9 +10,8 @@
 #include "spool.h"
 #include "meter.h"
 
-
 class AlsaTPort {
- protected:
+ public:
   MemQ *Q;
   Meter *meter;
   Spool *spool;
@@ -38,20 +37,19 @@ class AlsaTPort {
   snd_pcm_uframes_t period_time;
   snd_output_t *log;
 
- public:
   int bits_per_sample, sample_rate, channels;
   int process_flag;
   sem_t finished_sem;
-  AlsaTPort(char *card, unsigned int bits_per_sample, unsigned int sample_rate);
+  AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned int sample_rate, bool run);
   virtual ~AlsaTPort();
   void startRecording(char *path);
   void stopRecording();
   virtual void stop();
   virtual void wait();
+  virtual void tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, snd_pcm_uframes_t frames));
   virtual int gotSignal();
   long getmaxn(unsigned int n);
   void resetmax();
-    
 };
 
 
