@@ -23,7 +23,7 @@ buffer::~buffer() {
   free(buf);
 }
 
-Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int c)
+Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int c, bool spawn=true)
   :  ctx(1), socket(ctx, ZMQ_PUB) {
   bits_per_sample = bps;
   sample_rate = sr;
@@ -40,6 +40,7 @@ Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, u
   pthread_mutex_init(&finishLock, NULL);
   pthread_cond_init(&finishCond, NULL);
   socket.connect("ipc:///tmp/progressIn.ipc");
+  should_spawn = spawn;
 }
 
 Spool::~Spool() {
@@ -100,55 +101,68 @@ void Spool::start(char *savePath) {
   started = true;
   pthread_mutex_unlock(&qLock);
 
+  initFLAC();
   // start write to disk
-  pthread_create(&sthread, NULL, (void * (*)(void *))doWrite, this);
+  if (should_spawn)
+    pthread_create(&sthread, NULL, (void * (*)(void *))doWrite, this);
 }
 
-void Spool::doWrite(void *foo) {
-  Spool *obj = (Spool *)foo;
-  FLAC__StreamEncoderInitStatus initted;
-  FLAC__StreamEncoder *encoder;
-  FILE *output;
-  unsigned int s;
+int Spool::tick() {
+    int s = Q.size();
+    if (s > 0) {
+      buffer& i = Q.front();
+      // write QItem->buf to disk
+      if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i.buf,
+                                                    i.size / channels / 4)){
+        printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(encoder), 
+               FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)]);
+      }
+      pthread_mutex_lock(&qLock);
+      Q.pop_front();
+      pthread_mutex_unlock(&qLock);
+      return s-1;
+    }
+    else {
+      return 0;
+    }
+}
 
-  output = fopen64(obj->filename, "w+b");
+void Spool::initFLAC() {
+  FLAC__StreamEncoderInitStatus initted;
+  output = fopen64(filename, "w+b");
 
   // only cache beginning of this huge file we're about to write out and not reuse
   posix_fadvise(fileno(output), 8192, 0, POSIX_FADV_NOREUSE);
 
   encoder = FLAC__stream_encoder_new();
-  FLAC__stream_encoder_set_channels(encoder, obj->channels);
-  FLAC__stream_encoder_set_bits_per_sample(encoder, obj->bits_per_sample);
-  FLAC__stream_encoder_set_sample_rate(encoder, obj->sample_rate);
+  FLAC__stream_encoder_set_channels(encoder, channels);
+  FLAC__stream_encoder_set_bits_per_sample(encoder, bits_per_sample);
+  FLAC__stream_encoder_set_sample_rate(encoder, sample_rate);
   initted = FLAC__stream_encoder_init_FILE(encoder, output, NULL, NULL);
   if (initted != FLAC__STREAM_ENCODER_INIT_STATUS_OK)
     {
       printf("Couldn't initialize FLAC encoder.\n");
       exit(-1);
     }
+}
+void Spool::doWrite(void *foo) {
+  Spool *obj = (Spool *)foo;
+  unsigned int s;
 
   do {
-    s = obj->Q.size();
-    if (s > 0) {
-      buffer& i = obj->Q.front();
-      // write QItem->buf to disk
-      if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i.buf,
-                                                    i.size / obj->channels / 4)){
-        printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(encoder), 
-               FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)]);
-      }
-      pthread_mutex_lock(&obj->qLock);
-      obj->Q.pop_front();
-      pthread_mutex_unlock(&obj->qLock);
-    }
-    else {
+    s = obj->tick();
+    if (s == 0) {
       usleep(10000);
     }
   } while (s > 0 || (s == 0 && !obj->finished));
 
+  obj->finishFLAC();
+
+  pthread_cond_broadcast(&obj->finishCond);
+}
+
+void Spool::finishFLAC() {
   FLAC__stream_encoder_finish(encoder);
   fsync(fileno(output));
   FLAC__stream_encoder_delete(encoder);
-
-  pthread_cond_broadcast(&obj->finishCond);
 }

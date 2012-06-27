@@ -22,8 +22,6 @@
 #include "const.h"
 
 #define PREROLL_LENGTH 60
-#define RING_LENGTH 1
-#define UPDATE_INTERVAL 10 // hz
 #define SAMPLE_SIZE 4 // used plughw to get signed 32-bit ints, since that's what FLAC wants
 
 
@@ -106,7 +104,7 @@ void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, s
   jack_ringbuffer_data_t writevec[2];
 
   got = 0;
-  count =  (sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * channels / 8;
+  count =  (sample_rate  / update_interval) * sizeof(FLAC__int32) * channels / 8;
   while(count > 0) {
     jack_ringbuffer_get_write_vector(ring, writevec);
     n = std::min((int)writevec[0].len / SAMPLE_SIZE / channels, (int)count);
@@ -168,7 +166,7 @@ void* AlsaTPort::process(void *user)
   return NULL;
 }
 
-AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned int sample_rate, bool run=true) {
+AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned int sample_rate, unsigned int update,  unsigned int ringlen=0, bool run=true) {
   char cardString[256];
   int err;
   snd_pcm_status_t *status;
@@ -177,10 +175,16 @@ AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned in
   this->sample_rate = sample_rate;
   this->channels = 2;
   this->process_flag = 0;
- 
+  this->update_interval = update;
+  this->spawns = run;
+
+  if (ringlen == 0) {
+    this->ring_length = SAMPLE_SIZE * channels * sample_rate; // one second
+  }
+  else {
+    ring_length = ringlen;
+  }
   sprintf(cardString, "plughw:%s", card);
-
-
 
   // set to 1 if threads should stop
   stop_flag = false;
@@ -190,18 +194,18 @@ AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned in
 
   overruns = 0;
 
-  ring = jack_ringbuffer_create(SAMPLE_SIZE * channels * sample_rate * RING_LENGTH);
+  ring = jack_ringbuffer_create(ring_length);
   jack_ringbuffer_mlock(ring);
   memset(ring->buf, 0, ring->size); // need to touch memory to ensure all pages are locked
 
 
-  prerollSize = PREROLL_LENGTH * UPDATE_INTERVAL;
+  prerollSize = PREROLL_LENGTH * update_interval;
 #ifdef DEBUG
   printf("prerollbuffer: %d\n", prerollSize);
 #endif
 
   
-  spool = new Spool(prerollSize, (sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels);
+  spool = new Spool(prerollSize, (sample_rate  / update_interval) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels, run);
   meter = new Meter(channels, sample_rate, ring, spool, &meter_lock, &data_ready);
 
   if (run) {
@@ -268,7 +272,7 @@ void AlsaTPort::setup() {
   if (buffer_time > 500000)
     buffer_time = 500000;
 
-  period_time = (sample_rate  / UPDATE_INTERVAL / 4) * sizeof(FLAC__int32) * channels;
+  period_time = (sample_rate  / update_interval / 4) * sizeof(FLAC__int32) * channels;
 
   err=snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, 0);
   assert(err >= 0);
@@ -323,7 +327,7 @@ void AlsaTPort::startRecording(char *path) {
 
 void AlsaTPort::stopRecording() {
   Spool *oldSpool = spool;
-  spool = new Spool(prerollSize, (sample_rate  / UPDATE_INTERVAL) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels);
+  spool = new Spool(prerollSize, (sample_rate  / update_interval) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels, spawns);
   meter->switchSpool(spool);
   oldSpool->finish();
 }

@@ -57,7 +57,8 @@ public:
 
 
 TEST_F(TransportTest, Simple) {
-  AlsaTPort port("0", 24, 48000, false);
+  unsigned int SR = 48000;
+  AlsaTPort port("0", 24, SR, SR/32, SR/10, false);
   tt = this;
   
   port.tick(&reader);
@@ -65,30 +66,62 @@ TEST_F(TransportTest, Simple) {
 
   port.startRecording(f);
 
+  port.spool->tick();
   port.spool->finish();
-  port.spool->wait();
+  port.spool->finishFLAC();
   verify();
 }
 
 TEST_F(TransportTest, NowNLater) {
-  AlsaTPort port("0", 24, 48000, false);
+  unsigned int SR = 48000;
+  AlsaTPort port("0", 24, SR, SR/32, SR/10, false);
   tt = this;
 
   port.tick(&reader);
   port.meter->tick();
 
   port.startRecording(f);
+  port.spool->tick();
 
   port.tick(&reader);
   port.meter->tick();
+  port.spool->tick();
 
   port.spool->finish();
-  port.spool->wait();
+  port.spool->finishFLAC();
   verify();
 }
 
 TEST_F(TransportTest, Ten) {
-  AlsaTPort port("0", 24, 48000, false);
+  unsigned int SR = 48000;
+  AlsaTPort port("0", 24, SR, SR/32, SR/10, false);
+  tt = this;
+
+  for(int i=0;i<5;i++) {
+    port.tick(&reader);
+    port.meter->tick();
+  }
+
+  port.startRecording(f);
+  int x;
+  do {
+    x = port.spool->tick();
+  } while (x > 0);
+
+  for(int i=0;i<5;i++) {
+    port.tick(&reader);
+    port.meter->tick();
+    port.spool->tick();
+  }
+
+  port.spool->finish();
+  port.spool->finishFLAC();
+  verify();
+}
+
+TEST_F(TransportTest, 1K) {
+  unsigned int SR = 48000;
+  AlsaTPort port("0", 24, SR, SR/32, SR/10, false);
   tt = this;
 
   for(int i=0;i<5;i++) {
@@ -98,12 +131,19 @@ TEST_F(TransportTest, Ten) {
 
   port.startRecording(f);
 
-  for(int i=0;i<5;i++) {
+  int x;
+  do {
+    x = port.spool->tick();
+  } while (x > 0);
+
+
+  for(int i=0;i<500;i++) {
     port.tick(&reader);
     port.meter->tick();
+    port.spool->tick();
   }
 
   port.spool->finish();
-  port.spool->wait();
+  port.spool->finishFLAC();
   verify();
 }

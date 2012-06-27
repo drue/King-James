@@ -84,20 +84,21 @@ public:
 
 TEST_F(MeterTest, PumpOne) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2);
+  Spool s(5, count*4, 24, 48000, 2, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   pushBlock(0, count);
   m.tick();
   s.start(f);
+  s.tick();
   s.finish();
-  s.wait();
+  s.finishFLAC();
   verify();
 }
 
 TEST_F(MeterTest, ExtraTicks) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2);
+  Spool s(5, count*4, 24, 48000, 2, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   pushBlock(0, count);
@@ -108,14 +109,15 @@ TEST_F(MeterTest, ExtraTicks) {
   m.tick();
   m.tick();
   m.tick();
+  s.tick();
   s.finish();
-  s.wait();
+  s.finishFLAC();
   verify();
 }
 
 TEST_F(MeterTest, PumpFiveFirst) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2);
+  Spool s(5, count*4, 24, 48000, 2, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   ASSERT_EQ(0, m.getmaxn(0));
@@ -129,8 +131,13 @@ TEST_F(MeterTest, PumpFiveFirst) {
   for(int i=0;i<5;i++)
     m.tick();
   s.start(f);
+  int i;
+  do {
+    i = s.tick();
+  } while(i > 0);
+
   s.finish();
-  s.wait();
+  s.finishFLAC();
   verify();
   ASSERT_EQ(5*32 - 2, m.getmaxn(0));
   ASSERT_EQ(5*32 - 1, m.getmaxn(1));
@@ -144,7 +151,7 @@ TEST_F(MeterTest, PumpFiveFirst) {
 
 TEST_F(MeterTest, PumpFiveAfter) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2);
+  Spool s(5, count*4, 24, 48000, 2, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   s.start(f);
@@ -153,37 +160,44 @@ TEST_F(MeterTest, PumpFiveAfter) {
   pushBlock(count*2, count);
   pushBlock(count*3, count);
   pushBlock(count*4, count);
-  for(int i=0;i<5;i++)
+  for(int i=0;i<5;i++) {
     m.tick();
+    s.tick();
+  }
   s.finish();
-  s.wait();
+  s.finishFLAC();
   verify();
 }
 
 TEST_F(MeterTest, PumpFiveInterleaved) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2);
+  Spool s(5, count*4, 24, 48000, 2, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   s.start(f);
   pushBlock(0, count);
   m.tick();
+  s.tick();
   pushBlock(count*1, count);
   m.tick();
+  s.tick();
   pushBlock(count*2, count);
   m.tick();
+  s.tick();
   pushBlock(count*3, count);
   m.tick();
+  s.tick();
   pushBlock(count*4, count);
   m.tick();
+  s.tick();
   s.finish();
-  s.wait();
+  s.finishFLAC();
   verify();
 }
 
 TEST_F(MeterTest, LoseOne) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2);
+  Spool s(5, count*4, 24, 48000, 2, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   pushBlock(0, count, false);
@@ -193,14 +207,18 @@ TEST_F(MeterTest, LoseOne) {
     m.tick();
   }
   s.start(f);
+  int i;
+  do {
+    i = s.tick();
+  } while(i > 0);
   s.finish();
-  s.wait();
+  s.finishFLAC();
   verify();
 }
 
 TEST_F(MeterTest, LoseFive) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2);
+  Spool s(5, count*4, 24, 48000, 2, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   for(int i=0;i<5;i++){
@@ -212,8 +230,12 @@ TEST_F(MeterTest, LoseFive) {
     m.tick();
   }
   s.start(f);
+  int i;
+  do {
+    i = s.tick();
+  } while(i > 0);
   s.finish();
-  s.wait();
+  s.finishFLAC();
   verify();
 
   ASSERT_EQ(318, m.getmaxn(0));

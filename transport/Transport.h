@@ -31,6 +31,7 @@ class AlsaTPort {
   pthread_cond_t  data_ready;
 
   unsigned long overruns;
+  bool spawns;
 
   snd_pcm_t *handle;
   snd_pcm_format_t format;
@@ -38,9 +39,11 @@ class AlsaTPort {
   snd_output_t *log;
 
   int bits_per_sample, sample_rate, channels;
+  unsigned int update_interval;
+  unsigned int ring_length;
   int process_flag;
   sem_t finished_sem;
-  AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned int sample_rate, bool run);
+  AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned int sample_rate, unsigned int update_interval, unsigned int ring_length, bool run);
   virtual ~AlsaTPort();
   void startRecording(char *path);
   void stopRecording();
