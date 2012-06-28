@@ -166,7 +166,7 @@ void* AlsaTPort::process(void *user)
   return NULL;
 }
 
-AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned int sample_rate, unsigned int update,  unsigned int ringlen=0, bool run=true) {
+AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned int sample_rate, unsigned int update,  unsigned int ringlen, bool run) {
   char cardString[256];
   int err;
   snd_pcm_status_t *status;

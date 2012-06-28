@@ -92,7 +92,7 @@ transport_test.o : $(TEST_DIR)/transport_test.cc \
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(USER_DIR) -c $(TEST_DIR)/transport_test.cc
 
 spool_test : spool.o spool_test.o gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -lzmq  -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -lzmq -lcrypto -o $@
 
 meter_test : meter.o spool.o meter_test.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -ljack -lzmq -lcrypto -o $@

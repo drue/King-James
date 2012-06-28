@@ -23,7 +23,7 @@ buffer::~buffer() {
   free(buf);
 }
 
-Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int c, bool spawn=true)
+Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int c, bool spawn)
   :  ctx(1), socket(ctx, ZMQ_PUB) {
   bits_per_sample = bps;
   sample_rate = sr;
@@ -76,6 +76,7 @@ void Spool::pushItem(buffer& buf) {
     }
   }
 
+  pthread_mutex_unlock(&qLock);
 
   aFrames += buf.size / channels / 4;
   if(started)
@@ -89,7 +90,6 @@ void Spool::pushItem(buffer& buf) {
     zmq::message_t msg(progMsg, strlen(progMsg), NULL);
     socket.send(msg);
   }
-  pthread_mutex_unlock(&qLock);
 }
 
 void Spool::start(char *savePath) {
@@ -148,13 +148,21 @@ void Spool::initFLAC() {
 void Spool::doWrite(void *foo) {
   Spool *obj = (Spool *)foo;
   unsigned int s;
+  bool done = false;
 
   do {
-    s = obj->tick();
-    if (s == 0) {
-      usleep(10000);
+    obj->tick();
+     
+    pthread_mutex_lock(&obj->qLock);
+    s = obj->Q.size();
+    if(obj->finished && s == 0)
+      done = true;
+    pthread_mutex_unlock(&obj->qLock);
+
+    if (s == 0 && !done) {
+      usleep(1/obj->sample_rate*1000000*obj->bufferSize);
     }
-  } while (s > 0 || (s == 0 && !obj->finished));
+  } while (!done);
 
   obj->finishFLAC();
 
