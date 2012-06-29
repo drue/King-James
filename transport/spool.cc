@@ -23,8 +23,7 @@ buffer::~buffer() {
   free(buf);
 }
 
-Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int c, bool spawn)
-  :  ctx(1), socket(ctx, ZMQ_PUB) {
+Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int c, bool spawn, bool progress){
   bits_per_sample = bps;
   sample_rate = sr;
   channels = c;
@@ -35,17 +34,26 @@ Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, u
   oFrames = 0;
   aFrames = 0; 
   lastProgress = 0;
+  send_progress = progress;
   filename = NULL;
   pthread_mutex_init(&qLock, NULL);
   pthread_mutex_init(&finishLock, NULL);
   pthread_cond_init(&finishCond, NULL);
-  socket.connect("ipc:///tmp/progressIn.ipc");
   should_spawn = spawn;
+  if (send_progress) {
+    ctx = new zmq::context_t(1);
+    socket = new zmq::socket_t(*ctx, ZMQ_PUB);
+    socket->connect("ipc:///tmp/progressIn.ipc");
+  }
 }
 
 Spool::~Spool() {
   if(filename != NULL)
     free(filename);
+  if (send_progress ) {
+    delete(socket);
+    delete(ctx);
+  }
 }
 
 void Spool::finish() {
@@ -82,13 +90,13 @@ void Spool::pushItem(buffer& buf) {
   if(started)
     oFrames += buf.size / channels / 4;
 
-  if (aFrames - lastProgress > sample_rate / 2) {
+  if (send_progress && aFrames - lastProgress > sample_rate / 2) {
     lastProgress = aFrames;
     bufLength = Q.size() * buf.size / 4 / channels / sample_rate;
     sprintf(progMsg, "{\"t\":%.0f, \"m\":%d, \"b\":%d}", floor(oFrames / sample_rate), 
             started ? 1 : 0, bufLength);
     zmq::message_t msg(progMsg, strlen(progMsg), NULL);
-    socket.send(msg);
+    socket->send(msg);
   }
 }
 
@@ -108,23 +116,23 @@ void Spool::start(char *savePath) {
 }
 
 int Spool::tick() {
-    int s = Q.size();
-    if (s > 0) {
-      buffer& i = Q.front();
-      // write QItem->buf to disk
-      if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i.buf,
-                                                    i.size / channels / 4)){
-        printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(encoder), 
-               FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)]);
-      }
-      pthread_mutex_lock(&qLock);
-      Q.pop_front();
-      pthread_mutex_unlock(&qLock);
-      return s-1;
+  int s = Q.size();
+  if (s > 0) {
+    buffer& i = Q.front();
+    // write QItem->buf to disk
+    if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i.buf,
+                                                  i.size / channels / 4)){
+      printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(encoder), 
+             FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)]);
     }
-    else {
-      return 0;
-    }
+    pthread_mutex_lock(&qLock);
+    Q.pop_front();
+    pthread_mutex_unlock(&qLock);
+    return s-1;
+  }
+  else {
+    return 0;
+  }
 }
 
 void Spool::initFLAC() {

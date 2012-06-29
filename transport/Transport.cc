@@ -205,7 +205,7 @@ AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned in
 #endif
 
   
-  spool = new Spool(prerollSize, (sample_rate  / update_interval) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels, run);
+  spool = new Spool(prerollSize, (sample_rate  / update_interval) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels, run, run);
   meter = new Meter(channels, sample_rate, ring, spool, &meter_lock, &data_ready);
 
   if (run) {
@@ -327,9 +327,11 @@ void AlsaTPort::startRecording(char *path) {
 
 void AlsaTPort::stopRecording() {
   Spool *oldSpool = spool;
-  spool = new Spool(prerollSize, (sample_rate  / update_interval) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels, spawns);
+  spool = new Spool(prerollSize, (sample_rate  / update_interval) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels, spawns, spawns);
   meter->switchSpool(spool);
   oldSpool->finish();
+  oldSpool->wait();
+  delete(oldSpool);
 }
 
 void AlsaTPort::wait()

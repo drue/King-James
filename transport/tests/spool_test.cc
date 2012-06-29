@@ -251,7 +251,7 @@ TEST_F(SpoolTest, LoseFive) {
 
 
 TEST_F(SpoolTest, TLoseFive) {
-  s = new Spool(5, 128, 24, 48000, 2);
+  s = new Spool(5, 128, 24, 48000, 2, true, false);
   
   // fill up the buffer reroll buffer, start, then send another five below
   int n = 0;
@@ -278,7 +278,7 @@ TEST_F(SpoolTest, TLoseFive) {
 
 
 TEST_F(SpoolTest, TPump) {
-  s = new Spool(5, 128, 24, 48000, 2);
+  s = new Spool(5, 128, 24, 48000, 2, true, false);
 
   int n = 0;
   // fill up the buffer reroll buffer, start, then send another five below
@@ -299,7 +299,7 @@ TEST_F(SpoolTest, TPump) {
 }
 
 TEST_F(SpoolTest, TTenBig) {
-  s = new Spool(5, 8000, 24, 48000, 2);
+  s = new Spool(5, 8000, 24, 48000, 2, true, false);
 
   int n = 0;
   // fill up the buffer reroll buffer, start, then send another five below
@@ -315,6 +315,26 @@ TEST_F(SpoolTest, TTenBig) {
   s->finish();
   s->wait();
        
+  verify();
+  delete(s);
+}
+
+TEST_F(SpoolTest, TFiftyBig) {
+  s = new Spool(5, 8000, 24, 48000, 2, true, false);
+
+  int n = 0;
+  // fill up the buffer reroll buffer, start, then send another five below
+  for(int x=0;x<5;x++) {
+    n = pushBlock(n);
+  }
+
+  s->start(f);
+
+  for(int x=0;x<50;x++) {
+    n = pushBlock(n);
+  }
+  s->finish();
+  s->wait();
   verify();
   delete(s);
 }

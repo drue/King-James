@@ -22,9 +22,10 @@ class Spool {
  protected:
   pthread_t sthread;;
   static void doWrite(void *foo);
-  zmq::context_t ctx;
-  zmq::socket_t socket;
+  zmq::context_t *ctx;
+  zmq::socket_t *socket;
   bool should_spawn;
+  bool send_progress;
   long long oFrames; // output frames
   long long aFrames; // all frames seen
   long long lastProgress; // aFrame we last sent progress on
@@ -35,7 +36,7 @@ class Spool {
 
  public:
 
-  Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int channels, bool spawn=true);
+  Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int channels, bool spawn=true, bool progress = true);
   ~Spool();
   char *filename;
   unsigned int bits_per_sample, sample_rate, channels, bufferSize, maxQSize;

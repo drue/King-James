@@ -84,7 +84,7 @@ public:
 
 TEST_F(MeterTest, PumpOne) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2, false);
+  Spool s(5, count*4, 24, 48000, 2, false, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   pushBlock(0, count);
@@ -98,7 +98,7 @@ TEST_F(MeterTest, PumpOne) {
 
 TEST_F(MeterTest, ExtraTicks) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2, false);
+  Spool s(5, count*4, 24, 48000, 2, false, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   pushBlock(0, count);
@@ -117,7 +117,7 @@ TEST_F(MeterTest, ExtraTicks) {
 
 TEST_F(MeterTest, PumpFiveFirst) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2, false);
+  Spool s(5, count*4, 24, 48000, 2, false, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   ASSERT_EQ(0, m.getmaxn(0));
@@ -151,7 +151,7 @@ TEST_F(MeterTest, PumpFiveFirst) {
 
 TEST_F(MeterTest, PumpFiveAfter) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2, false);
+  Spool s(5, count*4, 24, 48000, 2, false, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   s.start(f);
@@ -171,7 +171,7 @@ TEST_F(MeterTest, PumpFiveAfter) {
 
 TEST_F(MeterTest, PumpFiveInterleaved) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2, false);
+  Spool s(5, count*4, 24, 48000, 2, false, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   s.start(f);
@@ -197,7 +197,7 @@ TEST_F(MeterTest, PumpFiveInterleaved) {
 
 TEST_F(MeterTest, LoseOne) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2, false);
+  Spool s(5, count*4, 24, 48000, 2, false, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   pushBlock(0, count, false);
@@ -218,7 +218,7 @@ TEST_F(MeterTest, LoseOne) {
 
 TEST_F(MeterTest, LoseFive) {
   const int count = 32;
-  Spool s(5, count*4, 24, 48000, 2, false);
+  Spool s(5, count*4, 24, 48000, 2, false, false);
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
 
   for(int i=0;i<5;i++){
@@ -236,6 +236,37 @@ TEST_F(MeterTest, LoseFive) {
   } while(i > 0);
   s.finish();
   s.finishFLAC();
+  verify();
+
+  ASSERT_EQ(318, m.getmaxn(0));
+  ASSERT_EQ(319, m.getmaxn(1));
+
+  m.resetmax();
+
+  ASSERT_EQ(0, m.getmaxn(0));
+  ASSERT_EQ(0, m.getmaxn(1));
+  
+}
+
+TEST_F(MeterTest, TLoseFive) {
+  const int count = 32;
+  Spool s(5, count*4, 24, 48000, 2, true, false);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+
+  m.start();
+
+  for(int i=0;i<5;i++){
+    pushBlock(count*i, count, false);
+  }
+  
+  for(int i=5;i<10;i++){
+    pushBlock(count*i, count);
+  }
+  
+  usleep(10000);
+  s.start(f);
+  s.finish();
+  s.wait();
   verify();
 
   ASSERT_EQ(318, m.getmaxn(0));
