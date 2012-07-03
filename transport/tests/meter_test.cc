@@ -63,8 +63,6 @@ public:
     }
 
     pthread_cond_signal (&data_ready);
-    pthread_mutex_unlock (&meter_lock);
-
   }
 
   virtual void verify() {
@@ -85,7 +83,7 @@ public:
 TEST_F(MeterTest, PumpOne) {
   const int count = 32;
   Spool s(5, count*4, 24, 48000, 2, false, false);
-  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   pushBlock(0, count);
   m.tick();
@@ -99,7 +97,7 @@ TEST_F(MeterTest, PumpOne) {
 TEST_F(MeterTest, ExtraTicks) {
   const int count = 32;
   Spool s(5, count*4, 24, 48000, 2, false, false);
-  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   pushBlock(0, count);
   m.tick();
@@ -118,7 +116,7 @@ TEST_F(MeterTest, ExtraTicks) {
 TEST_F(MeterTest, PumpFiveFirst) {
   const int count = 32;
   Spool s(5, count*4, 24, 48000, 2, false, false);
-  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   ASSERT_EQ(0, m.getmaxn(0));
   ASSERT_EQ(0, m.getmaxn(1));
@@ -152,7 +150,7 @@ TEST_F(MeterTest, PumpFiveFirst) {
 TEST_F(MeterTest, PumpFiveAfter) {
   const int count = 32;
   Spool s(5, count*4, 24, 48000, 2, false, false);
-  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   s.start(f);
   pushBlock(0, count);
@@ -172,7 +170,7 @@ TEST_F(MeterTest, PumpFiveAfter) {
 TEST_F(MeterTest, PumpFiveInterleaved) {
   const int count = 32;
   Spool s(5, count*4, 24, 48000, 2, false, false);
-  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   s.start(f);
   pushBlock(0, count);
@@ -198,7 +196,7 @@ TEST_F(MeterTest, PumpFiveInterleaved) {
 TEST_F(MeterTest, LoseOne) {
   const int count = 32;
   Spool s(5, count*4, 24, 48000, 2, false, false);
-  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   pushBlock(0, count, false);
   m.tick();
@@ -219,7 +217,7 @@ TEST_F(MeterTest, LoseOne) {
 TEST_F(MeterTest, LoseFive) {
   const int count = 32;
   Spool s(5, count*4, 24, 48000, 2, false, false);
-  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   for(int i=0;i<5;i++){
     pushBlock(count*i, count, false);
@@ -251,9 +249,10 @@ TEST_F(MeterTest, LoseFive) {
 TEST_F(MeterTest, TLoseFive) {
   const int count = 32;
   Spool s(5, count*4, 24, 48000, 2, true, false);
-  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   m.start();
+  m.waitReady();
 
   for(int i=0;i<5;i++){
     pushBlock(count*i, count, false);
@@ -262,10 +261,13 @@ TEST_F(MeterTest, TLoseFive) {
   for(int i=5;i<10;i++){
     pushBlock(count*i, count);
   }
-  
-  usleep(10000);
+
+  usleep(10000); // waiting is flaky, 
   s.start(f);
+  s.waitReady();
+  m.finish();
   s.finish();
+  m.wait();
   s.wait();
   verify();
 
@@ -277,4 +279,47 @@ TEST_F(MeterTest, TLoseFive) {
   ASSERT_EQ(0, m.getmaxn(0));
   ASSERT_EQ(0, m.getmaxn(1));
   
+}
+
+TEST_F(MeterTest, TPumpy) {
+  const int count = 3200;
+  Spool s(5, count*4, 24, 48000, 2, true, false);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
+
+  m.start();
+  s.start(f);
+  m.waitReady();
+  s.waitReady();
+
+  for(int i=0;i<10;i++){
+    pushBlock(count*i, count);
+    usleep(3200 * (1/48000.0)*1000000);
+  }
+  
+  m.finish();
+  m.wait();
+  s.finish();
+  s.wait();
+  verify();
+}
+
+TEST_F(MeterTest, TPumpyHundo) {
+  const int count = 3200;
+  const int rate = 48000;
+  Spool s(5, count*4, 24, rate, 2, true, false);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
+
+  m.start();
+  s.start(f);
+  m.waitReady();
+  s.waitReady();
+
+  for(int i=0;i<100;i++){
+    pushBlock(count*i, count);
+    usleep(count * (1/(rate * 10.0))*1000000);
+  }
+  
+  s.finish();
+  s.wait();
+  verify();
 }

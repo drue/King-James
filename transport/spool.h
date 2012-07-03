@@ -40,13 +40,14 @@ class Spool {
   boost::condition finishCond;
   boost::condition dataCond;
   boost::thread *thread;
+  std::deque<buffer>Q;
+
  public:
 
   Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int channels, bool spawn=true, bool progress = true);
   ~Spool();
   char *filename;
   unsigned int bits_per_sample, sample_rate, channels, bufferSize, maxQSize;
-  std::deque<buffer>Q;
 
   void initFLAC();
   void finishFLAC();

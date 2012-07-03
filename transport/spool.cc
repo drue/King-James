@@ -66,6 +66,7 @@ Spool::~Spool() {
 void Spool::finish() {
   boost::mutex::scoped_lock lock(qLock);
   finished = true;
+  dataCond.notify_all();
 }
 
 void Spool::wait() {
@@ -95,7 +96,6 @@ void Spool::pushItem(buffer& buf) {
       Q.pop_front();
     }
   }
-
   qLock.unlock();
   dataCond.notify_all();
 
@@ -147,6 +147,7 @@ int Spool::tick() {
     return s-1;
   }
   else {
+    qLock.unlock();
     return 0;
   }
 }
@@ -194,8 +195,8 @@ void Spool::doWrite(void *foo) {
   obj->finishFLAC(); 
   obj->qLock.lock();
   obj->done = true;
-  obj->qLock.unlock();
   obj->finishCond.notify_all();
+  obj->qLock.unlock();
 }
 
 void Spool::finishFLAC() {

@@ -206,7 +206,7 @@ AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned in
 
   
   spool = new Spool(prerollSize, (sample_rate  / update_interval) * sizeof(FLAC__int32) * channels, this->bits_per_sample, this->sample_rate, channels, run, run);
-  meter = new Meter(channels, sample_rate, ring, spool, &meter_lock, &data_ready);
+  meter = new Meter(channels, sample_rate, ring, spool, &meter_lock, &data_ready, run);
 
   if (run) {
       err=snd_pcm_open(&handle, cardString, SND_PCM_STREAM_CAPTURE, 0);

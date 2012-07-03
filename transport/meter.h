@@ -4,14 +4,24 @@
 #include <zmq.hpp>
 
 #include "spool.h"
+#include "boost/thread/mutex.hpp"
+#include "boost/thread/condition.hpp"
 
 class Meter {
  protected:
   pthread_t sthread;
   pthread_t cthread;
-  bool finished;
+  bool send_levels;
   pthread_mutex_t *lock;
   pthread_cond_t *cond;
+
+  bool ready;
+  bool finished;
+  bool done;
+  boost::mutex readyLock;
+  boost::condition readyCond;
+
+  
   unsigned int chans;
   unsigned int rate;
   jack_ringbuffer_t *ring;
@@ -23,15 +33,18 @@ class Meter {
   zmq::context_t *ctx;
 
   static void run(void *foo);
-  void shipItem(buffer &i, FLAC__int32*tMax, zmq::socket_t *socket);
+  void shipItem(buffer &i, FLAC__int32*tMax);
 
  public:
   virtual ~Meter();
 
-  Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q, Spool *aSpool, pthread_mutex_t *lock, pthread_cond_t *cond);
+  Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q, Spool *aSpool, pthread_mutex_t *lock, pthread_cond_t *cond, bool levels=true);
   long getmaxn(unsigned int n);
   virtual void tick();
+  void waitReady();
   void start();
+  void finish();
+  void wait();
   void resetmax();
   void switchSpool(Spool *newSpool);
 };

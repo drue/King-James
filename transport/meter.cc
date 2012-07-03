@@ -10,36 +10,55 @@
 
 #define DECAY 1700
 
-Meter::Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q, Spool *aSpool, pthread_mutex_t *l, pthread_cond_t *c) {
+Meter::Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q, Spool *aSpool, pthread_mutex_t *l, pthread_cond_t *c, bool levels) {
   finished = false;
   ring = q;
   spool = aSpool;
   this->chans = chans;
+  send_levels = levels;
+
   max = (FLAC__int32*)malloc(sizeof(FLAC__int32*) * chans);
   prev = (FLAC__int32*)malloc(sizeof(FLAC__int32*) * chans);
   for(unsigned i=0;i < chans;i++) {
     max[i] = prev[i] = 0;
   }
-
+  
   pthread_mutex_init(&maxLock, NULL);
   lock = l;
   cond = c;
   rate = sample_rate;
+  ready = done = false;
 
-  ctx = new zmq::context_t(1);
-  socket = new zmq::socket_t(*ctx, ZMQ_PUB);
-  socket->bind("ipc:///tmp/peaks.ipc");
+  if (send_levels) {
+    ctx = new zmq::context_t(1);
+    socket = new zmq::socket_t(*ctx, ZMQ_PUB);
+    socket->bind("ipc:///tmp/peaks.ipc");
+  }
 }
 
 Meter::~Meter() {
   free (max);
   free (prev);
-  delete(socket);
-  delete(ctx);
+  if (send_levels) {
+    delete(socket);
+    delete(ctx);
+  }
 }
 
 void Meter::start() {
   pthread_create(&sthread, NULL, (void * (*)(void *))run, this);
+}
+
+void Meter::finish() {
+  boost::mutex::scoped_lock lock(readyLock);
+  finished = true;
+  pthread_cond_signal(cond);
+}
+
+void Meter::wait() {
+  boost::mutex::scoped_lock lock(readyLock);
+  while(!done)
+    readyCond.wait(readyLock);
 }
 
 void Meter::switchSpool(Spool *newSpool) {
@@ -70,17 +89,30 @@ float todBFS(FLAC__int32 sample)  {
   else return -140;
 }
 
+void Meter::waitReady() {
+  boost::mutex::scoped_lock lock(readyLock);
+  while(!ready)
+    readyCond.wait(readyLock);
+}
+
 void Meter::run(void *foo) {
   Meter *obj = (Meter *)foo;
   
+  obj->readyLock.lock();
+  obj->ready = true;
+  obj->readyCond.notify_all();
+  obj->readyLock.unlock();
+
   pthread_mutex_lock(obj->lock);
 
-  while(1) {
-    //printf("awake\n");
+  while(!obj->finished || jack_ringbuffer_read_space(obj->ring) > 0) {
     obj->tick();
     pthread_cond_wait (obj->cond, obj->lock);
   }
   pthread_mutex_unlock(obj->lock);
+  boost::mutex::scoped_lock lock(obj->readyLock);
+  obj->done = true;
+  obj->readyCond.notify_all();
 }
 
 void Meter::tick() {
@@ -123,21 +155,20 @@ void Meter::tick() {
         is += 4;
       }
       if (o->size == os) {
-        shipItem(*o, tMax, socket);
+        shipItem(*o, tMax);
         os = 0;
         o = &spool->getEmpty();
         //printf("shipped, freespace: %d\n", jack_ringbuffer_write_space(ring));
       }
       else if (os > o->size) {
         printf("OVERFLOW\n");
-        exit(-1);
       }
     }
     jack_ringbuffer_read_advance(ring, is);
   }
   free(tMax);
 }
-void Meter::shipItem(buffer &item, FLAC__int32*tMax, zmq::socket_t *socket) {
+void Meter::shipItem(buffer &item, FLAC__int32*tMax) {
   int millis;
   int decay;
   char str[1024] = "";
@@ -175,6 +206,8 @@ void Meter::shipItem(buffer &item, FLAC__int32*tMax, zmq::socket_t *socket) {
   pthread_mutex_unlock(&maxLock);
   spool->pushItem(item);
   //printf("%s\n", str);
-  zmq::message_t msg(str, strlen(str), NULL);
-  socket->send(msg);
+  if (send_levels) {
+    zmq::message_t msg(str, strlen(str), NULL);
+    socket->send(msg);
+  }
 }
