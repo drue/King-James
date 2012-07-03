@@ -1,7 +1,6 @@
 #include <deque>
 #include <iostream>
 
-#include <FLAC/all.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -9,6 +8,7 @@
 #include <math.h>
 
 #include <zmq.hpp>
+#include <FLAC/all.h>
 
 #include "spool.h"
 
@@ -23,7 +23,8 @@ buffer::~buffer() {
   free(buf);
 }
 
-Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int c, bool spawn, bool progress){
+Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int c, bool spawn, bool progress) 
+{
   bits_per_sample = bps;
   sample_rate = sr;
   channels = c;
@@ -36,9 +37,9 @@ Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, u
   lastProgress = 0;
   send_progress = progress;
   filename = NULL;
-  pthread_mutex_init(&qLock, NULL);
-  pthread_mutex_init(&finishLock, NULL);
-  pthread_cond_init(&finishCond, NULL);
+  ready=false;
+  done=false;
+
   should_spawn = spawn;
   if (send_progress) {
     ctx = new zmq::context_t(1);
@@ -48,6 +49,12 @@ Spool::Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, u
 }
 
 Spool::~Spool() {
+  if(should_spawn) {
+    thread->join();
+    delete(thread);
+  }
+
+  
   if(filename != NULL)
     free(filename);
   if (send_progress ) {
@@ -57,15 +64,20 @@ Spool::~Spool() {
 }
 
 void Spool::finish() {
-  pthread_mutex_lock(&finishLock);
+  boost::mutex::scoped_lock lock(qLock);
   finished = true;
-  pthread_mutex_unlock(&finishLock);
 }
 
 void Spool::wait() {
-  pthread_mutex_lock(&finishLock);
-  pthread_cond_wait(&finishCond, &finishLock);
-  pthread_mutex_unlock(&finishLock);
+  boost::mutex::scoped_lock lock(qLock);
+  while(!done)
+    finishCond.wait(qLock);
+}
+
+void Spool::waitReady() {
+  boost::mutex::scoped_lock lock(qLock);
+  while(!ready)
+    finishCond.wait(qLock);
 }
 
 buffer& Spool::getEmpty() {
@@ -76,7 +88,7 @@ buffer& Spool::getEmpty() {
 void Spool::pushItem(buffer& buf) {
   unsigned int bufLength;
 
-  pthread_mutex_lock(&qLock);
+  qLock.lock();
   Q.push_back(buf);
   if(!started) {
     while (Q.size() > maxQSize) {
@@ -84,7 +96,8 @@ void Spool::pushItem(buffer& buf) {
     }
   }
 
-  pthread_mutex_unlock(&qLock);
+  qLock.unlock();
+  dataCond.notify_all();
 
   aFrames += buf.size / channels / 4;
   if(started)
@@ -104,30 +117,33 @@ void Spool::start(char *savePath) {
   filename = (char *)malloc(strlen(savePath));
   strcpy(filename, savePath);
 
-  pthread_mutex_lock(&qLock);
+  qLock.lock();
   oFrames += (Q.size() * bufferSize) / 4 / channels;
   started = true;
-  pthread_mutex_unlock(&qLock);
+  qLock.unlock();
+
 
   initFLAC();
   // start write to disk
   if (should_spawn)
-    pthread_create(&sthread, NULL, (void * (*)(void *))doWrite, this);
+    thread = new boost::thread(&doWrite, this);
 }
 
 int Spool::tick() {
+  qLock.lock();
   int s = Q.size();
   if (s > 0) {
     buffer& i = Q.front();
     // write QItem->buf to disk
+    qLock.unlock();
     if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i.buf,
                                                   i.size / channels / 4)){
       printf("FLAC error! state = %d:%s \n", FLAC__stream_encoder_get_state(encoder), 
              FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)]);
     }
-    pthread_mutex_lock(&qLock);
+    qLock.lock();
     Q.pop_front();
-    pthread_mutex_unlock(&qLock);
+    qLock.unlock();
     return s-1;
   }
   else {
@@ -156,25 +172,30 @@ void Spool::initFLAC() {
 void Spool::doWrite(void *foo) {
   Spool *obj = (Spool *)foo;
   unsigned int s;
-  bool done = false;
+  bool exiting = false;
+
+  obj->qLock.lock();
+  obj->ready=true;
+  obj->qLock.unlock();
+  obj->finishCond.notify_all();
 
   do {
     obj->tick();
      
-    pthread_mutex_lock(&obj->qLock);
+    boost::mutex::scoped_lock lock(obj->qLock);
     s = obj->Q.size();
     if(obj->finished && s == 0)
-      done = true;
-    pthread_mutex_unlock(&obj->qLock);
-
-    if (s == 0 && !done) {
-      usleep(1/obj->sample_rate*1000000*obj->bufferSize);
+      exiting = true;
+    else if (s == 0) {
+      obj->dataCond.wait(obj->qLock);
     }
-  } while (!done);
+  } while (!exiting);
 
-  obj->finishFLAC();
-
-  pthread_cond_broadcast(&obj->finishCond);
+  obj->finishFLAC(); 
+  obj->qLock.lock();
+  obj->done = true;
+  obj->qLock.unlock();
+  obj->finishCond.notify_all();
 }
 
 void Spool::finishFLAC() {

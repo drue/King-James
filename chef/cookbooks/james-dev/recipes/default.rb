@@ -12,6 +12,8 @@ package "libevent-dev"
 package "gdb"
 package "htop"
 package "libjack-dev"
+package "libboost-dev"
+package "libboost-thread-dev"
 package "avahi-daemon"
 package "unzip"
 

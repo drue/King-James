@@ -1,11 +1,12 @@
 #include <deque>
 
-#include <pthread.h>
-#include <semaphore.h>
 #include <time.h>
 
 #include <FLAC/all.h>
 #include <zmq.hpp>
+#include "boost/thread/mutex.hpp"
+#include "boost/thread/condition.hpp"
+#include "boost/thread/thread.hpp"
 
 #ifndef __SPOOL__
 #define __SPOOL__
@@ -20,7 +21,6 @@ class buffer {
 
 class Spool {
  protected:
-  pthread_t sthread;;
   static void doWrite(void *foo);
   zmq::context_t *ctx;
   zmq::socket_t *socket;
@@ -32,8 +32,14 @@ class Spool {
   char progMsg[256];
   FLAC__StreamEncoder *encoder;
   FILE *output;
-
-
+  bool started; // flag indicating spool should start actually writing data to disk
+  bool finished; // flag indicating thread should finish up and move to done
+  bool ready; // thread running and processing data
+  bool done; // thread done, flac finalized
+  boost::mutex qLock;
+  boost::condition finishCond;
+  boost::condition dataCond;
+  boost::thread *thread;
  public:
 
   Spool(unsigned int prerollSize, unsigned int bufSize, unsigned int bps, unsigned int sr, unsigned int channels, bool spawn=true, bool progress = true);
@@ -41,11 +47,6 @@ class Spool {
   char *filename;
   unsigned int bits_per_sample, sample_rate, channels, bufferSize, maxQSize;
   std::deque<buffer>Q;
-  bool finished;
-  bool started;
-  pthread_mutex_t qLock;
-  pthread_mutex_t finishLock;
-  pthread_cond_t finishCond;
 
   void initFLAC();
   void finishFLAC();
@@ -55,6 +56,7 @@ class Spool {
   virtual int tick();
   void finish();
   void wait();
+  void waitReady();
 };
 
 #endif

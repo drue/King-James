@@ -264,6 +264,7 @@ TEST_F(SpoolTest, TLoseFive) {
   }
 
   s->start(f);
+  s->waitReady();
 
   for(int x=0;x<5;x++) {
     n = pushBlock(n);
@@ -287,6 +288,7 @@ TEST_F(SpoolTest, TPump) {
   }
 
   s->start(f);
+  s->waitReady();
 
   for(int x=0;x<500;x++) {
     n = pushBlock(n);
@@ -308,6 +310,7 @@ TEST_F(SpoolTest, TTenBig) {
   }
 
   s->start(f);
+  s->waitReady();
 
   for(int x=0;x<5;x++) {
     n = pushBlock(n);
@@ -329,6 +332,7 @@ TEST_F(SpoolTest, TFiftyBig) {
   }
 
   s->start(f);
+  s->waitReady();
 
   for(int x=0;x<50;x++) {
     n = pushBlock(n);

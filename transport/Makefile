@@ -92,10 +92,10 @@ transport_test.o : $(TEST_DIR)/transport_test.cc \
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(USER_DIR) -c $(TEST_DIR)/transport_test.cc
 
 spool_test : spool.o spool_test.o gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -lzmq -lcrypto -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -lzmq -lcrypto -lboost_thread -o $@
 
 meter_test : meter.o spool.o meter_test.o gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -ljack -lzmq -lcrypto -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -ljack -lzmq -lcrypto  -lboost_thread -o $@
 
 transport_test : Transport.o meter.o spool.o transport_test.o gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -ljack -lzmq -lcrypto -lasound -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -lpthread -lFLAC -lFLAC++ -ljack -lzmq -lcrypto -lasound  -lboost_thread -o $@
