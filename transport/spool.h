@@ -24,7 +24,6 @@ class Spool {
   static void doWrite(void *foo);
   zmq::context_t *ctx;
   zmq::socket_t *socket;
-  bool should_spawn;
   bool send_progress;
   long long oFrames; // output frames
   long long aFrames; // all frames seen
@@ -48,6 +47,7 @@ class Spool {
   ~Spool();
   char *filename;
   unsigned int bits_per_sample, sample_rate, channels, bufferSize, maxQSize;
+  bool should_spawn;
 
   void initFLAC();
   void finishFLAC();

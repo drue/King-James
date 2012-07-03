@@ -27,6 +27,7 @@ public:
     MD5_Init(&ctx);
     counter = 0;
     channels = 2;
+    tt = this;
   }
 
   virtual void TearDown() {
@@ -59,7 +60,6 @@ public:
 TEST_F(TransportTest, Simple) {
   unsigned int SR = 48000;
   AlsaTPort port("0", 24, SR, SR/32, SR/10, false);
-  tt = this;
   
   port.tick(&reader);
   port.meter->tick();
@@ -75,7 +75,6 @@ TEST_F(TransportTest, Simple) {
 TEST_F(TransportTest, NowNLater) {
   unsigned int SR = 48000;
   AlsaTPort port("0", 24, SR, SR/32, SR/10, false);
-  tt = this;
 
   port.tick(&reader);
   port.meter->tick();
@@ -95,7 +94,6 @@ TEST_F(TransportTest, NowNLater) {
 TEST_F(TransportTest, Ten) {
   unsigned int SR = 48000;
   AlsaTPort port("0", 24, SR, SR/32, SR/10, false);
-  tt = this;
 
   for(int i=0;i<5;i++) {
     port.tick(&reader);
@@ -122,7 +120,6 @@ TEST_F(TransportTest, Ten) {
 TEST_F(TransportTest, 1K) {
   unsigned int SR = 48000;
   AlsaTPort port("0", 24, SR, SR/32, SR/10, false);
-  tt = this;
 
   for(int i=0;i<5;i++) {
     port.tick(&reader);
@@ -145,5 +142,33 @@ TEST_F(TransportTest, 1K) {
 
   port.spool->finish();
   port.spool->finishFLAC();
+  verify();
+}
+
+TEST_F(TransportTest, T1K) {
+  unsigned int SR = 48000;
+  int count = 3200;
+  AlsaTPort port("0", 24, SR, count*4, SR/10, false);
+
+  port.meter->start();
+  port.meter->waitReady();
+  port.spool->should_spawn = true;
+
+
+  for(int i=0;i<5;i++) {
+    port.tick(&reader);
+  }
+
+  port.startRecording(f);
+
+  for(int i=0;i<500;i++) {
+    port.tick(&reader);
+    usleep(count * (1/(SR * 10.0))*1000000);
+  }
+
+  port.meter->finish();
+  port.meter->wait();
+  port.spool->finish();
+  port.spool->wait();
   verify();
 }
