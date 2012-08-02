@@ -70,8 +70,8 @@ TEST_F(SpoolTest, DeallocUnused) {
 TEST_F(SpoolTest, Null) {
 
   s = new Spool(5, 128, 24, 48000, 2, false);
-
   s->start(f);
+  s->initFLAC();
   s->finish();
   s->finishFLAC();
   verify();
@@ -82,6 +82,7 @@ TEST_F(SpoolTest, OneItem) {
   s = new Spool(5, 128, 24, 48000, 2, false);
   
   s->start(f);
+  s->initFLAC();
   pushBlock(0);
   s->tick();
   s->finish();
@@ -95,6 +96,7 @@ TEST_F(SpoolTest, FiveItems) {
   s = new Spool(5, 128, 24, 48000, 2, false);
   
   s->start(f);
+  s->initFLAC();
 
   int n = 0;
   for(int x=0;x<5;x++) {
@@ -117,6 +119,7 @@ TEST_F(SpoolTest, SpoolUp5) {
   }
 
   s->start(f);
+  s->initFLAC();
   unsigned int x;
   do {
     x = s->tick();
@@ -140,6 +143,7 @@ TEST_F(SpoolTest, HalfAndHalf) {
   }
 
   s->start(f);
+  s->initFLAC();
 
   unsigned int x;
   do {
@@ -169,6 +173,7 @@ TEST_F(SpoolTest, HalfAndHalf16) {
   }
 
   s->start(f);
+  s->initFLAC();
   unsigned int x;
   do {
     x = s->tick();
@@ -199,6 +204,7 @@ TEST_F(SpoolTest, LoseOne) {
   }
 
   s->start(f);
+  s->initFLAC();
   unsigned int x;
   do {
     x = s->tick();
@@ -231,6 +237,7 @@ TEST_F(SpoolTest, LoseFive) {
   }
 
   s->start(f);
+  s->initFLAC();
   unsigned int x;
   do {
     x = s->tick();
@@ -337,6 +344,28 @@ TEST_F(SpoolTest, TFiftyBig) {
   for(int x=0;x<50;x++) {
     n = pushBlock(n);
   }
+  s->finish();
+  s->wait();
+  verify();
+  delete(s);
+}
+
+TEST_F(SpoolTest, TBiggie) {
+  s = new Spool(5, 3200*8, 24, 48000, 2, true, false);
+
+  int n = 0;
+
+  for(int x=0;x<5;x++) {
+    n = pushBlock(n);
+  }
+
+  s->start(f);
+  s->waitReady();
+
+  for(int x=0;x<500;x++) {
+    n = pushBlock(n);
+  }
+
   s->finish();
   s->wait();
   verify();

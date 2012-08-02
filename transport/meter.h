@@ -26,6 +26,8 @@ class Meter {
   unsigned int rate;
   jack_ringbuffer_t *ring;
   Spool *spool;
+  buffer *o;
+  unsigned os;
   pthread_mutex_t maxLock;
   FLAC__int32 *max;
   FLAC__int32 *prev;

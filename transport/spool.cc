@@ -89,14 +89,13 @@ buffer& Spool::getEmpty() {
 void Spool::pushItem(buffer& buf) {
   unsigned int bufLength;
 
-  qLock.lock();
+  boost::mutex::scoped_lock lock(qLock);
   Q.push_back(buf);
-  if(!started) {
+  if(started == false) {
     while (Q.size() > maxQSize) {
       Q.pop_front();
     }
   }
-  qLock.unlock();
   dataCond.notify_all();
 
   aFrames += buf.size / channels / 4;
@@ -117,13 +116,10 @@ void Spool::start(char *savePath) {
   filename = (char *)malloc(strlen(savePath));
   strcpy(filename, savePath);
 
-  qLock.lock();
+  boost::mutex::scoped_lock lock(qLock);
   oFrames += (Q.size() * bufferSize) / 4 / channels;
   started = true;
-  qLock.unlock();
 
-
-  initFLAC();
   // start write to disk
   if (should_spawn)
     thread = new boost::thread(&doWrite, this);
@@ -134,6 +130,7 @@ int Spool::tick() {
   int s = Q.size();
   if (s > 0) {
     buffer& i = Q.front();
+    //printf("Encoding %d - %d\n", i.buf[0], i.buf[i.size / 4 - 1]);
     // write QItem->buf to disk
     qLock.unlock();
     if (!FLAC__stream_encoder_process_interleaved(encoder, (const FLAC__int32 *)i.buf,
@@ -176,9 +173,12 @@ void Spool::doWrite(void *foo) {
   bool exiting = false;
 
   obj->qLock.lock();
-  obj->ready=true;
+  if(!obj->ready) {
+    obj->initFLAC();
+    obj->ready=true;
+    obj->finishCond.notify_all();
+  }
   obj->qLock.unlock();
-  obj->finishCond.notify_all();
 
   do {
     obj->tick();
@@ -192,8 +192,8 @@ void Spool::doWrite(void *foo) {
     }
   } while (!exiting);
 
-  obj->finishFLAC(); 
   obj->qLock.lock();
+  obj->finishFLAC(); 
   obj->done = true;
   obj->finishCond.notify_all();
   obj->qLock.unlock();

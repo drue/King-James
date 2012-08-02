@@ -22,7 +22,7 @@ public:
   MD5_CTX ctx;
 
   virtual void SetUp() {
-    ring = jack_ringbuffer_create(48000 * 4 * 2);
+    ring = jack_ringbuffer_create(48000 * 4 * 2 * 10);
     pthread_mutex_init(&meter_lock, NULL);
     pthread_cond_init(&data_ready, NULL);
     strncpy(tmpl, "/tmp/SpoolTest.XXXXXX", sizeof(tmpl));
@@ -51,6 +51,9 @@ public:
     jack_ringbuffer_write_advance(ring, n);
   
     n = count * 4 - n;
+    if(n > writevec[1].len) {
+      printf("OVERFLOW IN PUSHBLOCK! %d\n", x);
+    }
     if (n > 0) {
       for (int z = 0;z*4<n;z++){
         memcpy(writevec[1].buf+(z*4), &x, 4);
@@ -80,6 +83,7 @@ public:
 
 };
 
+
 TEST_F(MeterTest, PumpOne) {
   const int count = 32;
   Spool s(5, count*4, 24, 48000, 2, false, false);
@@ -88,6 +92,7 @@ TEST_F(MeterTest, PumpOne) {
   pushBlock(0, count);
   m.tick();
   s.start(f);
+  s.initFLAC();
   s.tick();
   s.finish();
   s.finishFLAC();
@@ -104,6 +109,7 @@ TEST_F(MeterTest, ExtraTicks) {
   m.tick();
   m.tick();
   s.start(f);
+  s.initFLAC();
   m.tick();
   m.tick();
   m.tick();
@@ -129,6 +135,7 @@ TEST_F(MeterTest, PumpFiveFirst) {
   for(int i=0;i<5;i++)
     m.tick();
   s.start(f);
+  s.initFLAC();
   int i;
   do {
     i = s.tick();
@@ -153,6 +160,7 @@ TEST_F(MeterTest, PumpFiveAfter) {
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   s.start(f);
+  s.initFLAC();
   pushBlock(0, count);
   pushBlock(count*1, count);
   pushBlock(count*2, count);
@@ -173,6 +181,7 @@ TEST_F(MeterTest, PumpFiveInterleaved) {
   Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
 
   s.start(f);
+  s.initFLAC();
   pushBlock(0, count);
   m.tick();
   s.tick();
@@ -205,6 +214,7 @@ TEST_F(MeterTest, LoseOne) {
     m.tick();
   }
   s.start(f);
+  s.initFLAC();
   int i;
   do {
     i = s.tick();
@@ -228,6 +238,7 @@ TEST_F(MeterTest, LoseFive) {
     m.tick();
   }
   s.start(f);
+  s.initFLAC();
   int i;
   do {
     i = s.tick();
@@ -319,6 +330,32 @@ TEST_F(MeterTest, TPumpyHundo) {
     usleep(count * (1/(rate * 10.0))*1000000);
   }
   
+  m.finish();
+  m.wait();
+  s.finish();
+  s.wait();
+  verify();
+}
+
+
+TEST_F(MeterTest, TPumpyBiggie) {
+  const int count = 3200;
+  const int rate = 48000;
+  Spool s(5, count*4, 24, rate, 2, true, false);
+  Meter m((unsigned)2, (unsigned)48000, ring, &s, &meter_lock, &data_ready, false);
+
+  m.start();
+  s.start(f);
+  m.waitReady();
+  s.waitReady();
+
+  for(int i=0;i<500;i++){
+    pushBlock(count*i, count);
+    usleep(count * (1/(rate))*1000000);
+  }
+  
+  m.finish();
+  m.wait();
   s.finish();
   s.wait();
   verify();

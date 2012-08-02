@@ -103,9 +103,9 @@ void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, s
   snd_pcm_uframes_t n;
   jack_ringbuffer_data_t writevec[2];
 
-  got = 0;
-  count =  (sample_rate  / update_interval) * sizeof(FLAC__int32) * channels / 8;
+  count =  (sample_rate  / update_interval);
   while(count > 0) {
+    got = 0;
     jack_ringbuffer_get_write_vector(ring, writevec);
     n = std::min((int)writevec[0].len / SAMPLE_SIZE / channels, (int)count);
     r = reader(handle, writevec[0].buf, n);
@@ -123,7 +123,7 @@ void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, s
       got += r;
       count -= r;
 
-      if (count && ((r * SAMPLE_SIZE * channels) == writevec[0].len) && writevec[1].len > 0) {
+      if (count > 0 && ((r * SAMPLE_SIZE * channels) == writevec[0].len) && writevec[1].len > 0) {
         r = reader(handle, writevec[1].buf, count);
         if (r == -EPIPE) {
           xrun();
@@ -138,12 +138,11 @@ void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, s
           count -=r;
         }
       }
-      jack_ringbuffer_write_advance(ring, got * SAMPLE_SIZE * channels);
-      pthread_cond_signal (&(data_ready));
-      pthread_mutex_unlock (&(meter_lock));
-      got = 0;
     }
+    jack_ringbuffer_write_advance(ring, got * SAMPLE_SIZE * channels);
   }
+  pthread_cond_signal (&(data_ready));
+  pthread_mutex_unlock (&(meter_lock));
 }
 
 void* AlsaTPort::process(void *user)
@@ -179,7 +178,7 @@ AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned in
   this->spawns = run;
 
   if (ringlen == 0) {
-    this->ring_length = SAMPLE_SIZE * channels * sample_rate; // one second
+    this->ring_length = SAMPLE_SIZE * channels * sample_rate * 10; // ten seconds
   }
   else {
     ring_length = ringlen;
@@ -247,6 +246,7 @@ void AlsaTPort::setup() {
   unsigned int buffer_time = 0;
   unsigned int period_time = 0;
 
+
   snd_pcm_hw_params_alloca(&params);
   snd_pcm_sw_params_alloca(&swparams);
 
@@ -272,15 +272,16 @@ void AlsaTPort::setup() {
   if (buffer_time > 500000)
     buffer_time = 500000;
 
-  period_time = (sample_rate  / update_interval / 4) * sizeof(FLAC__int32) * channels;
+  //period_time = (sample_rate  / update_interval / 4) * sizeof(FLAC__int32) * channels;
+  period_time = 125000;
 
   err=snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, 0);
   assert(err >= 0);
 
-  buffer_time = period_time * 8;
+  //  buffer_time = period_time * 8;
 
-  err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, 0);
-  assert(err >= 0);
+  //  err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, 0);
+  //  assert(err >= 0);
   
   err = snd_pcm_hw_params(handle, params);
 
@@ -298,7 +299,7 @@ void AlsaTPort::setup() {
 
   snd_pcm_sw_params_current(handle, swparams);
 
-  snd_pcm_sw_params_set_avail_min(handle, swparams, chunk_size);
+  snd_pcm_sw_params_set_avail_min(handle, swparams, 6000);
   snd_pcm_sw_params_set_start_threshold(handle, swparams, 0);
   
   //  err = snd_pcm_sw_params_set_xfer_align(handle, swparams, 4);

@@ -10,7 +10,8 @@ mode = STOPPED
 
 depth = 24
 rate = 48000
-card = "miniStreamer"
+#card = "miniStreamer"
+card = "1"
 comp_ratio = .65
 
 

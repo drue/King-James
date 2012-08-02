@@ -6,13 +6,11 @@
 #include <jack/ringbuffer.h>
 
 #include "port.h"
-#include "memq.h"
 #include "spool.h"
 #include "meter.h"
 
 class AlsaTPort {
  public:
-  MemQ *Q;
   Meter *meter;
   Spool *spool;
 

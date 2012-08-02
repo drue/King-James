@@ -16,6 +16,8 @@ Meter::Meter(unsigned int chans, unsigned int sample_rate, jack_ringbuffer_t *q,
   spool = aSpool;
   this->chans = chans;
   send_levels = levels;
+  o = &spool->getEmpty();
+  os = 0;
 
   max = (FLAC__int32*)malloc(sizeof(FLAC__int32*) * chans);
   prev = (FLAC__int32*)malloc(sizeof(FLAC__int32*) * chans);
@@ -96,6 +98,7 @@ void Meter::waitReady() {
 }
 
 void Meter::run(void *foo) {
+  bool exiting = false;
   Meter *obj = (Meter *)foo;
   
   obj->readyLock.lock();
@@ -103,20 +106,26 @@ void Meter::run(void *foo) {
   obj->readyCond.notify_all();
   obj->readyLock.unlock();
 
-  pthread_mutex_lock(obj->lock);
 
-  while(!obj->finished || jack_ringbuffer_read_space(obj->ring) > 0) {
+  do {
+    pthread_mutex_lock(obj->lock);
     obj->tick();
-    pthread_cond_wait (obj->cond, obj->lock);
-  }
-  pthread_mutex_unlock(obj->lock);
+    int s = jack_ringbuffer_read_space(obj->ring);
+    if(obj->finished && s == 0) {
+      exiting = true;
+    }
+    else if (s == 0) {
+      pthread_cond_wait (obj->cond, obj->lock);
+    }
+    pthread_mutex_unlock(obj->lock);
+  }  while(!exiting);
   boost::mutex::scoped_lock lock(obj->readyLock);
   obj->done = true;
   obj->readyCond.notify_all();
 }
 
 void Meter::tick() {
-  unsigned is, os, i, c;
+  unsigned is, i, c;
   FLAC__int32 *tMax, *ibuf, t;
   unsigned int frames;
   unsigned x;
@@ -124,17 +133,13 @@ void Meter::tick() {
 
   tMax = (FLAC__int32 *)malloc(sizeof(chans * sizeof(FLAC__int32)));
 
-  buffer *o = &spool->getEmpty();
   for(i=0;i<chans;i++)
     tMax[i] = 0;
 
-  size_t size = jack_ringbuffer_read_space(ring);
-    
   jack_ringbuffer_get_read_vector(ring, regions);
   frames = (regions[0].len + regions[1].len)  / 4 / chans;
 
   is = 0;
-  os = 0;
 
   if (frames > 0) {
     for(unsigned frame=0;frame < frames;frame++) {
@@ -156,9 +161,10 @@ void Meter::tick() {
       }
       if (o->size == os) {
         shipItem(*o, tMax);
+        for(i=0;i<chans;i++)
+          tMax[i] = 0;
         os = 0;
         o = &spool->getEmpty();
-        //printf("shipped, freespace: %d\n", jack_ringbuffer_write_space(ring));
       }
       else if (os > o->size) {
         printf("OVERFLOW\n");

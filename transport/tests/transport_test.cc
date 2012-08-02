@@ -54,8 +54,18 @@ public:
     }
     return frames;
   }
-};
 
+  static snd_pcm_sframes_t rand_reader(snd_pcm_t *handle, void *buf, snd_pcm_uframes_t frames) {
+    unsigned nframes = std::max(1, (int)(frames * (random() * 1.0 / RAND_MAX)));
+
+    for (unsigned int i=0;i<nframes*tt->channels;i++) {
+      ((int *)buf)[i] = tt->counter;
+      MD5_Update(&tt->ctx, &tt->counter, 3); // only works on little endian
+      tt->counter++;
+    }
+    return nframes;
+  }
+};
 
 TEST_F(TransportTest, Simple) {
   unsigned int SR = 48000;
@@ -65,7 +75,7 @@ TEST_F(TransportTest, Simple) {
   port.meter->tick();
 
   port.startRecording(f);
-
+  port.spool->initFLAC();
   port.spool->tick();
   port.spool->finish();
   port.spool->finishFLAC();
@@ -80,6 +90,7 @@ TEST_F(TransportTest, NowNLater) {
   port.meter->tick();
 
   port.startRecording(f);
+  port.spool->initFLAC();
   port.spool->tick();
 
   port.tick(&reader);
@@ -101,6 +112,7 @@ TEST_F(TransportTest, Ten) {
   }
 
   port.startRecording(f);
+  port.spool->initFLAC();
   int x;
   do {
     x = port.spool->tick();
@@ -127,6 +139,7 @@ TEST_F(TransportTest, 1K) {
   }
 
   port.startRecording(f);
+  port.spool->initFLAC();
 
   int x;
   do {
@@ -148,7 +161,7 @@ TEST_F(TransportTest, 1K) {
 TEST_F(TransportTest, T1K) {
   unsigned int SR = 48000;
   int count = 3200;
-  AlsaTPort port("0", 24, SR, count*4, SR/10, false);
+  AlsaTPort port("0", 24, SR, 10, 0, false);
 
   port.meter->start();
   port.meter->waitReady();
@@ -164,6 +177,92 @@ TEST_F(TransportTest, T1K) {
   for(int i=0;i<500;i++) {
     port.tick(&reader);
     usleep(count * (1/(SR * 10.0))*1000000);
+  }
+
+  port.meter->finish();
+  port.meter->wait();
+  port.spool->finish();
+  port.spool->wait();
+  verify();
+}
+
+TEST_F(TransportTest, T10K) {
+  unsigned int SR = 48000;
+  int count = SR/10*2;
+  AlsaTPort port("0", 24, SR, 10, 0, false);
+
+  port.meter->start();
+  port.meter->waitReady();
+  port.spool->should_spawn = true;
+
+
+  for(int i=0;i<5;i++) {
+    port.tick(&reader);
+  }
+
+  port.startRecording(f);
+
+  for(int i=0;i<500;i++) {
+    port.tick(&reader);
+    usleep(count * (1/(SR * 10.0))*1000000);
+  }
+
+  port.meter->finish();
+  port.meter->wait();
+  port.spool->finish();
+  port.spool->wait();
+  verify();
+}
+
+TEST_F(TransportTest, RandT1K) {
+  unsigned int SR = 48000;
+  int count = 3200;
+  AlsaTPort port("0", 24, SR, 10, 0, false);
+
+  port.meter->start();
+  port.meter->waitReady();
+  port.spool->should_spawn = true;
+
+
+  for(int i=0;i<5;i++) {
+    port.tick(&rand_reader);
+  }
+
+  port.startRecording(f);
+
+  for(int i=0;i<500;i++) {
+    port.tick(&rand_reader);
+    unsigned c = count * (1/(SR * 10.0))*1000000;
+    usleep(c);
+  }
+
+  port.meter->finish();
+  port.meter->wait();
+  port.spool->finish();
+  port.spool->wait();
+  verify();
+}
+
+TEST_F(TransportTest, Long) {
+  unsigned int SR = 48000;
+  int count = 3200;
+  AlsaTPort port("0", 24, SR, 10, 0, false);
+
+  port.meter->start();
+  port.meter->waitReady();
+  port.spool->should_spawn = true;
+
+
+  for(int i=0;i<5;i++) {
+    port.tick(&rand_reader);
+  }
+
+  port.startRecording(f);
+
+  for(int i=0;i<50000;i++) {
+    port.tick(&rand_reader);
+    unsigned c = count * (1/(SR * 10.0))*1000000;
+    usleep(c);
   }
 
   port.meter->finish();

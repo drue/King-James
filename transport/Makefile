@@ -52,6 +52,9 @@ test: all
 	./meter_test
 	./transport_test
 
+tt: transport_test
+	./transport_test
+
 # Builds gtest.a and gtest_main.a.
 
 # Usually you shouldn't tweak such internal variables, indicated by a
