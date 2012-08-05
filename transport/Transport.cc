@@ -300,7 +300,8 @@ void AlsaTPort::setup() {
   snd_pcm_sw_params_current(handle, swparams);
 
   snd_pcm_sw_params_set_avail_min(handle, swparams, 6000);
-  snd_pcm_sw_params_set_start_threshold(handle, swparams, 0);
+  snd_pcm_sw_params_set_start_threshold(handle, swparams, 1);
+  snd_pcm_sw_params_set_stop_threshold(handle, swparams, 24000);
   
   //  err = snd_pcm_sw_params_set_xfer_align(handle, swparams, 4);
 
