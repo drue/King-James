@@ -16,13 +16,18 @@ Cookbooks
 ---------
 
 * build-essential
+* yum
+
+NOTE: The `yum` cookbook is a dependency of the cookbook, and will be used to install [EPEL](http://fedoraproject.org/wiki/EPEL) on RedHet/CentOS 5.x systems to provide the Python 2.6 packages.
 
 Attributes
 ==========
 
-* `node["python"]["install_method"]` = method to install python with, default `package`.
+See `attributes/default.rb` for default values.
 
-The file also contains the following attribute types:
+* `node["python"]["install_method"]` - method to install python with, default `package`.
+
+The file also contains the following attributes:
 
 * platform specific locations and settings.
 * source installation settings
@@ -53,26 +58,27 @@ Install packages using the new hotness in Python package management...[`pip`](ht
 - version: the version of the package to install/upgrade.  If no version is given latest is assumed.
 - virtualenv: virtualenv environment to install pip package into
 - options: Add additional options to the underlying pip package command
+- timeout: timeout in seconds for the command to execute. Useful for pip packages that may take a long time to install. Default 900 seconds.
 
 # Example
-    
+
     # install latest gunicorn into system path
     python_pip "gunicorn" do
       action :install
     end
-    
+
     # target a virtualenv
     python_pip "gunicorn" do
       virtualenv "/home/ubunut/my_ve"
       action :install
     end
-    
+
     # install Django 1.1.4
     python_pip "django" do
       version "1.1.4"
       action :install
     end
-    
+
     # use this provider with the core package resource
     package "django" do
       provider Chef::Provider::PythonPip
@@ -95,16 +101,17 @@ Install packages using the new hotness in Python package management...[`pip`](ht
 - interpreter: The Python interpreter to use. default is `python2.6`
 - owner: The owner for the virtualenv
 - group: The group owner of the file (string or id)
+- options : Command line options (string)
 
 # Example
-    
+
     # create a 2.6 virtualenv owned by ubuntu user
     python_virtualenv "/home/ubuntu/my_cool_ve" do
       owner "ubuntu"
       group "ubuntu"
       action :create
     end
-    
+
     # create a Python 2.4 virtualenv
     python_virtualenv "/home/ubuntu/my_old_ve" do
       interpreter "python2.4"
@@ -112,7 +119,15 @@ Install packages using the new hotness in Python package management...[`pip`](ht
       group "ubuntu"
       action :create
     end
-    
+
+    # create a Python 2.6 virtualenv with access to the global packages owned by ubuntu user
+    python_virtualenv "/home/ubuntu/my_old_ve" do
+      owner "ubuntu"
+      group "ubuntu"
+      options "--system-site-packages"
+      action :create
+    end
+
 Usage
 =====
 
@@ -140,7 +155,6 @@ virtualenv
 ----------
 
 Installs virtualenv using the `python_pip` resource.
-
 
 License and Author
 ==================
