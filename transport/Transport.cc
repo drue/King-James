@@ -103,7 +103,7 @@ void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, s
   snd_pcm_uframes_t n;
   jack_ringbuffer_data_t writevec[2];
 
-  count =  (sample_rate  / update_interval);
+  count =  (sample_rate  / update_interval / channels);
   while(count > 0) {
     got = 0;
     jack_ringbuffer_get_write_vector(ring, writevec);
@@ -138,8 +138,8 @@ void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, s
           count -=r;
         }
       }
+      jack_ringbuffer_write_advance(ring, got * SAMPLE_SIZE * channels);
     }
-    jack_ringbuffer_write_advance(ring, got * SAMPLE_SIZE * channels);
   }
   pthread_cond_signal (&(data_ready));
   pthread_mutex_unlock (&(meter_lock));
