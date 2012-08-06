@@ -159,7 +159,7 @@ AlsaTPort::AlsaTPort(const char *card, unsigned int bits_per_sample, unsigned in
   this->spawns = run;
 
   if (ringlen == 0) {
-    this->ring_length = SAMPLE_SIZE * channels * sample_rate * 10; // ten seconds
+    this->ring_length = SAMPLE_SIZE * channels * sample_rate * 3; // three seconds
   }
   else {
     ring_length = ringlen;
@@ -253,16 +253,14 @@ void AlsaTPort::setup() {
   if (buffer_time > 500000)
     buffer_time = 500000;
 
-  //period_time = (sample_rate  / update_interval / 4) * sizeof(FLAC__int32) * channels;
   period_time = 125000;
 
   err=snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, 0);
   assert(err >= 0);
 
-  //  buffer_time = period_time * 8;
-
-  //  err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, 0);
-  //  assert(err >= 0);
+  buffer_size = 24000;
+  err = snd_pcm_hw_params_set_buffer_size_near(handle, params, &buffer_size);
+  assert(err >= 0);
   
   err = snd_pcm_hw_params(handle, params);
 
@@ -280,14 +278,10 @@ void AlsaTPort::setup() {
 
   snd_pcm_sw_params_current(handle, swparams);
 
-  snd_pcm_sw_params_set_avail_min(handle, swparams, 6000);
+  snd_pcm_sw_params_set_avail_min(handle, swparams, chunk_size);
   snd_pcm_sw_params_set_start_threshold(handle, swparams, 1);
   snd_pcm_sw_params_set_stop_threshold(handle, swparams, 24000);
   
-  //  err = snd_pcm_sw_params_set_xfer_align(handle, swparams, 4);
-
-  //  snd_pcm_sw_params_set_stop_threshold(handle, swparams, buffer_size);
-
   if (snd_pcm_sw_params(handle, swparams) < 0) {
     printf("unable to install sw params:\n");
     snd_pcm_sw_params_dump(swparams, log);
