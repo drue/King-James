@@ -89,7 +89,7 @@ buffer& Spool::getEmpty() {
 void Spool::pushItem(buffer& buf) {
   unsigned int bufLength;
 
-  boost::mutex::scoped_lock lock(qLock);
+  qLock.lock();
   Q.push_back(buf);
   if(started == false) {
     while (Q.size() > maxQSize) {
@@ -97,12 +97,14 @@ void Spool::pushItem(buffer& buf) {
     }
   }
   dataCond.notify_all();
+  qLock.unlock();
 
   aFrames += buf.size / channels / 4;
   if(started)
     oFrames += buf.size / channels / 4;
 
-  if (send_progress && aFrames - lastProgress > sample_rate / 2) {
+
+  if (send_progress && aFrames - lastProgress > sample_rate / channels / 2) {
     lastProgress = aFrames;
     bufLength = Q.size() * buf.size / 4 / channels / sample_rate;
     sprintf(progMsg, "{\"t\":%.0f, \"m\":%d, \"b\":%d}", floor(oFrames / sample_rate), 
@@ -183,13 +185,14 @@ void Spool::doWrite(void *foo) {
   do {
     obj->tick();
      
-    boost::mutex::scoped_lock lock(obj->qLock);
+    obj->qLock.lock();
     s = obj->Q.size();
     if(obj->finished && s == 0)
       exiting = true;
     else if (s == 0) {
       obj->dataCond.wait(obj->qLock);
     }
+    obj->qLock.unlock();
   } while (!exiting);
 
   obj->qLock.lock();
