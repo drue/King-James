@@ -253,13 +253,13 @@ void AlsaTPort::setup() {
   if (buffer_time > 500000)
     buffer_time = 500000;
 
-  period_time = 125000;
+  period_time = (sample_rate  / update_interval / 4) * sizeof(FLAC__int32) * channels;
 
   err=snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, 0);
   assert(err >= 0);
 
-  buffer_size = 24000;
-  err = snd_pcm_hw_params_set_buffer_size_near(handle, params, &buffer_size);
+  buffer_time = period_time * 8;
+  err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, 0);
   assert(err >= 0);
   
   err = snd_pcm_hw_params(handle, params);
