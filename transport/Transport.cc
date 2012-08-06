@@ -103,9 +103,8 @@ void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, s
   snd_pcm_uframes_t n;
   jack_ringbuffer_data_t writevec[2];
 
-  count =  (sample_rate  / update_interval / channels);
+  count =  (sample_rate  / update_interval);
   while(count > 0) {
-    got = 0;
     jack_ringbuffer_get_write_vector(ring, writevec);
     n = std::min((int)writevec[0].len / SAMPLE_SIZE / channels, (int)count);
     r = reader(handle, writevec[0].buf, n);
@@ -115,34 +114,16 @@ void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, s
     else if (r == -ESTRPIPE) {
       suspend();
     }
-    else if (r < 0) {
+    else if (r <= 0) {
       fprintf(stderr, "read error: %s", snd_strerror(r));
       exit(-1);
     }
     else {
-      got += r;
       count -= r;
-
-      if (count > 0 && ((r * SAMPLE_SIZE * channels) == writevec[0].len) && writevec[1].len > 0) {
-        r = reader(handle, writevec[1].buf, count);
-        if (r == -EPIPE) {
-          xrun();
-        } else if (r == -ESTRPIPE) {
-          suspend();
-        } else if (r < 0) {
-          fprintf(stderr, "read error: %s", snd_strerror(r));
-          exit(-1);
-        }
-        else {
-          got += r;
-          count -=r;
-        }
-      }
-      jack_ringbuffer_write_advance(ring, got * SAMPLE_SIZE * channels);
+      jack_ringbuffer_write_advance(ring, r * SAMPLE_SIZE * channels);
     }
   }
   pthread_cond_signal (&(data_ready));
-  pthread_mutex_unlock (&(meter_lock));
 }
 
 void* AlsaTPort::process(void *user)
