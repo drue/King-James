@@ -3,8 +3,8 @@ King James
 
 This software is for creating audio recorder appliances on Linux.  The
 main use case is concert recording with a small SBC such as a
-RaspberryPi or BeagleBone.  It is controlled with an HTML/JS
-interface.
+RaspberryPi or BeagleBone.  It sports an HTML/JS interface for
+wireless remote control with a phone or any other web browser.
 
 The core consists of a Python Tornado server with a C++ module that
 interfaces with ALSA and writes the FLAC files.  Socket.IO, with
@@ -35,15 +35,8 @@ to that.  I used that recorder for a few years but eventually I
 switched to a commercial handheld because it was much smaller and
 lighter.
 
-The handheld commercial units available today all have issues.  Only
-two have digital inputs.  One is a piece of crap and the other
-wastes space and budget on built-in mics that I'm not too keen on.
-I also don't really need analog inputs though sometimes they do come
-in handy.
-
-Now with SBCs like Raspberry-Pi and BeagleBone, I can make a better
-recorder for my purposes without compromising on size or price.  I
-particularly want remote control via my phone.
+Now with SBCs like Raspberry-Pi and BeagleBone, I can make a recorder 
+that is better than commercial units for my purposes.
 
 
 Status
