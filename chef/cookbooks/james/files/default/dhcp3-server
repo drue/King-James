@@ -1,2 +1,2 @@
-INTERFACES="br0"
+INTERFACES="wlan0"
 

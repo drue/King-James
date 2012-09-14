@@ -3,6 +3,8 @@ package "iptables"
 package "dhcp3-server"
 package "hostapd"
 
+service "hostapd"
+
 cookbook_file "/etc/network/interfaces" do
   mode "0644"
 end
@@ -25,6 +27,7 @@ end
 
 cookbook_file "/etc/hostapd/hostapd.conf" do
   mode "0600"
+  notifies :restart, "service[hostapd]"
 end
 
 cookbook_file "/etc/default/hostapd" do
