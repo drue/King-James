@@ -1,3 +1,6 @@
+from datetime import datetime
+from os.path import join
+
 from tornado.web import RequestHandler
 
 import core
@@ -5,11 +8,13 @@ from const import *
 
 n = 0
 
+LOC="/var/audio"
+
 class RecordHandler(RequestHandler):
     def newFile(self):
         global n
         n+= 1
-        return "recording%s.flac" % n
+        return join(LOC, "%s.flac" % datetime.now().isoformat())
 
     def post(self):
         global mode
