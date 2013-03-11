@@ -1,5 +1,5 @@
 directory "/var/audio" do
-  mode "0644"
+  mode "0755"
 end
 
 cookbook_file "/etc/init/james.conf" do
