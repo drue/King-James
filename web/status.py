@@ -38,7 +38,7 @@ class Status(SocketConnection):
         o = []
         if (time() - Status.rTime > 30):
             stat = os.statvfs('.')
-            Status.remaining = (stat.f_bsize * stat.f_bavail) / ((core.depth / 8) * core.rate * core.comp_ratio)
+            Status.remaining = (stat.f_bsize * stat.f_bavail) / ((core.depth / 8) * core.channels * core.rate * core.comp_ratio)
             Status.rTime = time()
 
         for msg in data:
