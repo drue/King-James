@@ -1,11 +1,12 @@
 #include <deque>
 #include <iostream>
 
-#include <string.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <sys/time.h>
 #include <math.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #include <zmq.hpp>
 #include <FLAC/all.h>
@@ -162,12 +163,15 @@ void Spool::initFLAC() {
   FLAC__stream_encoder_set_channels(encoder, channels);
   FLAC__stream_encoder_set_bits_per_sample(encoder, bits_per_sample);
   FLAC__stream_encoder_set_sample_rate(encoder, sample_rate);
+  //FLAC__stream_encoder_set_compression_level(encoder, 8);
   initted = FLAC__stream_encoder_init_FILE(encoder, output, NULL, NULL);
   if (initted != FLAC__STREAM_ENCODER_INIT_STATUS_OK)
     {
       printf("Couldn't initialize FLAC encoder.\n");
       exit(-1);
     }
+  
+  chmod(filename, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 }
 void Spool::doWrite(void *foo) {
   Spool *obj = (Spool *)foo;

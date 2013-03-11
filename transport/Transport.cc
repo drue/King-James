@@ -99,7 +99,7 @@ void AlsaTPort::xrun(void)
 }
 
 void AlsaTPort::tick(snd_pcm_sframes_t (*reader)(snd_pcm_t *handle, void *buf, snd_pcm_uframes_t frames)) {
-  snd_pcm_sframes_t count, r, got;
+  snd_pcm_sframes_t count, r;
   snd_pcm_uframes_t n;
   jack_ringbuffer_data_t writevec[2];
 
