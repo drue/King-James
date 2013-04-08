@@ -1,0 +1,15 @@
+# /etc/modules: kernel modules to load at boot time.
+#
+# This file contains the names of kernel modules that should be loaded
+# at boot time, one per line. Lines beginning with "#" are ignored.
+
+loop
+lp
+
+# Chip drivers
+coretemp
+dme1737
+
+# wireless
+rt2800usb
+#8192cu
