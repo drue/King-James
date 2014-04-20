@@ -40,7 +40,14 @@ that is better than commercial units for my purposes.
 
 
 Status
-------
+
+* 2014-04-20 - updating for Raspberry Pi with Wolfson card
+
+* 2013-05-01 - Successfully field tested with a Pico ITX Atom and miniStreamer
+
+* 2012-08-22 - Core is thoroughly tested.  Now working on finding an
+  AP compatible wifi driver that doesn't crash the low latency kernel
+  required for reading off USB without loss.
 
 * 2012-01-17 - Basic software is done and ready for some hardware to
 test on.  Still needs recipes and scripts for cross-compiling and
@@ -49,3 +56,4 @@ renaming, better error handling, and maybe a Winky-Blinkie inspired
 stereo phase meter.
 
 * 2012-01-02 - King-James project begins again with ancient codebase.
+
