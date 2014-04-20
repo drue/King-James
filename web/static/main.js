@@ -1,10 +1,10 @@
 function zeroPad(num,count)
 {
-  var numZeropad = num + '';
-  while(numZeropad.length < count) {
-    numZeropad = "0" + numZeropad;
-  }
-  return numZeropad;
+    var numZeropad = num + '';
+    while(numZeropad.length < count) {
+        numZeropad = "0" + numZeropad;
+    }
+    return numZeropad;
 }
 
 $(function() {
@@ -14,83 +14,83 @@ $(function() {
     status = new io.connect('http://' + window.location.host + '/status');
 
     peaks.on('message', function(data) {
-               var d = $.parseJSON(data[0]);
-               lightVU(d);
-               $('#maxL').html(d[2]);
-               $('#maxR').html(d[3]);
-             });
+        var d = $.parseJSON(data[0]);
+        lightVU(d);
+        $('#maxL').html(d[2]);
+        $('#maxR').html(d[3]);
+    });
 
 
     status.on('message', function(data) {
-                var s = $.parseJSON(data[0]);
-                var allLeft = s.r / 3600;
-                var hoursLeft = Math.floor(allLeft);
-                var minutesLeft = Math.floor((allLeft - hoursLeft) * 60);
-                $('#timeLeft').html(hoursLeft + ":" + zeroPad(minutesLeft, 2));
+        var s = $.parseJSON(data[0]);
+        var allLeft = s.r / 3600;
+        var hoursLeft = Math.floor(allLeft);
+        var minutesLeft = Math.floor((allLeft - hoursLeft) * 60);
+        $('#timeLeft').html(hoursLeft + ":" + zeroPad(minutesLeft, 2));
 
-                var elapsed = s.t / 3600;
-                var hoursElapsed = Math.floor(elapsed);
-                var minutes = (elapsed - hoursElapsed) * 60;
-                var minutesElapsed = Math.floor(minutes);
-                var secondsElapsed = Math.floor((minutes - minutesElapsed) * 60);
-                $('#timeElapsed').html(zeroPad(hoursElapsed, 2) + ":" +
-                                       zeroPad(minutesElapsed, 2) + ":" +
-                zeroPad(secondsElapsed, 2));
+        var elapsed = s.t / 3600;
+        var hoursElapsed = Math.floor(elapsed);
+        var minutes = (elapsed - hoursElapsed) * 60;
+        var minutesElapsed = Math.floor(minutes);
+        var secondsElapsed = Math.floor((minutes - minutesElapsed) * 60);
+        $('#timeElapsed').html(zeroPad(hoursElapsed, 2) + ":" +
+                               zeroPad(minutesElapsed, 2) + ":" +
+                               zeroPad(secondsElapsed, 2));
 
-                $('#format').html(s.f);
+        $('#format').html(s.f);
 
-                $('#buffer').html(s.b + "s");
+        $('#buffer').html(s.b + "s");
 
-                $('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
+        $('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
 
-                $('#signal').html(s.s ? "LOCKED" : "NO SIGNAL");
-                
-                if (s.m == 0) {
-                  $('#mode').attr('src', '/static/paused.png');
-                }
-                else {
-                  $('#mode').attr('src', '/static/recording.png');
-                }
+        $('#signal').html(s.s ? "LOCKED" : "NO SIGNAL");
+        
+        if (s.m == 0) {
+            $('#mode').attr('src', '/static/paused.png');
+        }
+        else {
+            $('#mode').attr('src', '/static/recording.png');
+        }
 
 
-              });
+    });
 
 
     function getPrintableDate(date) {
-      return date.getFullYear().toString() + '/' +
-        (date.getMonth()+1).toString() + '/' +
-        date.getDate().toString() + ' ' +
-        date.getHours().toString() + ':' +
-        date.getMinutes().toString() + ':' +
-        date.getSeconds().toString() + '.' +
-        date.getMilliseconds().toString();
+        return date.getFullYear().toString() + '/' +
+            (date.getMonth()+1).toString() + '/' +
+            date.getDate().toString() + ' ' +
+            date.getHours().toString() + ':' +
+            date.getMinutes().toString() + ':' +
+            date.getSeconds().toString() + '.' +
+            date.getMilliseconds().toString();
     }
 
     function encodeDate(date)
     {
-      return [date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()];
+        return [date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()];
     }
 
     function decodeDate(data)
     {
-      var date = new Date();
-      return new Date(date.getFullYear(), date.getMonth(), date.getDate(),
-                      data[0], data[1], data[2], data[3]);
+        var date = new Date();
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate(),
+                        data[0], data[1], data[2], data[3]);
     }
 
     // Ping
     ping.on('message', function(data) {
-              var client = decodeDate(data.client);
-              var server = decodeDate(data.server);
-              var now = new Date();
+        var client = decodeDate(data.client);
+        var server = decodeDate(data.server);
+        var now = new Date();
 
-              $('#ping').html((now.getTime() - client.getTime()).toString() + ' ms');
-            });
+        $('#ping').html((now.getTime() - client.getTime()).toString() + ' ms');
+    });
 
     function sendPing()
     {
-      ping.json.send({client: encodeDate(new Date()) });
-      setTimeout(sendPing, 5000);
+        ping.json.send({client: encodeDate(new Date()) });
+        setTimeout(sendPing, 5000);
     }
     sendPing();
-  });
+});
