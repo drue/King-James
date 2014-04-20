@@ -153,8 +153,11 @@ void Meter::tick() {
           ibuf = (FLAC__int32*)regions[1].buf;
         }
         t = o->buf[os/4] = ibuf[x/4];
-        if (abs(t) > tMax[c]) {
-          tMax[c] = abs(t);
+        if (t > 8388608) {
+          t = 16777216 - t;
+        }
+        if (t > tMax[c]) {
+          tMax[c] = t;
         }
         os += 4;
         is += 4;
