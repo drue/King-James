@@ -163,7 +163,7 @@ void Spool::initFLAC() {
   FLAC__stream_encoder_set_channels(encoder, channels);
   FLAC__stream_encoder_set_bits_per_sample(encoder, bits_per_sample);
   FLAC__stream_encoder_set_sample_rate(encoder, sample_rate);
-  //FLAC__stream_encoder_set_compression_level(encoder, 8);
+  FLAC__stream_encoder_set_compression_level(encoder, 1);
   initted = FLAC__stream_encoder_init_FILE(encoder, output, NULL, NULL);
   if (initted != FLAC__STREAM_ENCODER_INIT_STATUS_OK)
     {
