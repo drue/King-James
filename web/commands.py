@@ -5,6 +5,7 @@ from tornado.web import RequestHandler
 
 import core
 from const import *
+from status import resetBTimer
 
 n = 0
 
@@ -29,3 +30,6 @@ class ResetPeaksHandler(RequestHandler):
     def post(self):
         core.port.resetPeaks()
 
+class ResetBTimerHandler(RequestHandler):
+    def post(self):
+        resetBTimer()

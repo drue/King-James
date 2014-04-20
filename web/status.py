@@ -1,7 +1,9 @@
-import os
+from math import floor
 from time import time
-import json
 import datetime
+import json
+import os
+from subprocess import check_call
 
 import tornado
 from tornadio2 import SocketConnection
@@ -10,6 +12,7 @@ from zmq.eventloop.zmqstream import ZMQStream
 from zmq.devices.basedevice import ThreadDevice
 
 import core
+from config import config, save_config
 
 context = zmq.Context() 
 
@@ -23,6 +26,7 @@ pr.start()
 class Status(SocketConnection):
     remaining = 0
     rTime = 0
+    pTime = 0
     def on_open(self, info):
         self.socket = context.socket(zmq.SUB)
         self.socket.connect('ipc:///tmp/progressOut.ipc')
@@ -36,20 +40,28 @@ class Status(SocketConnection):
 
     def process(self, data):
         o = []
-        if (time() - Status.rTime > 30):
+        now = time()
+        if (now - Status.rTime > 30):
             stat = os.statvfs('.')
             Status.remaining = (stat.f_bsize * stat.f_bavail) / ((core.depth / 8) * core.channels * core.rate * core.comp_ratio)
-            Status.rTime = time()
+            Status.rTime = now
+            updateBTimer()
+            save_config()
 
-        for msg in data:
-            d = json.loads(msg)
-            d['c'] = os.getloadavg()
-            d['r'] = Status.remaining
-            d['s'] = core.port.gotSignal()
-            d['f'] = "%s/%s" % (core.depth, str(core.rate)[:2])
-            o.append(json.dumps(d))
-        if o:
-            self.send(o)
+        if (now - Status.pTime > 0.5):
+            for msg in data:
+                d = json.loads(msg)
+                d['c'] = os.getloadavg()
+                d['r'] = Status.remaining
+                d['s'] = core.port.gotSignal()
+                d['f'] = "%s/%s" % (core.depth, str(core.rate)[:2])
+                #                d['bt'] = hrBTimer()
+                #                d['ct'] = getTemp()
+                o.append(json.dumps(d))
+            if o:
+                self.send(o)
+                #                print(o)
+            Status.pTime = now
 
 
 class Peaks(SocketConnection):
@@ -58,7 +70,11 @@ class Peaks(SocketConnection):
         self.socket.connect('ipc:///tmp/peaks.ipc')
         self.socket.setsockopt(zmq.SUBSCRIBE, '')
         stream = ZMQStream(self.socket, tornado.ioloop.IOLoop.instance())
-        stream.on_recv(self.send)
+        stream.on_recv(self.do_send)
+
+    def do_send(self, *args, **kwargs):
+        #        print(">>> peakz %s %s" % (args, kwargs))
+        self.send(*args, **kwargs)
 
 
 class Ping(SocketConnection):
@@ -67,3 +83,33 @@ class Ping(SocketConnection):
 
         message['server'] = [now.hour, now.minute, now.second, now.microsecond / 1000]
         self.send(message)
+
+
+lastUpdate = time()
+
+def resetBTimer():
+    config['btimer'] = 0
+    pass
+
+def updateBTimer():
+    global lastUpdate
+    now = time()
+    delta = now - lastUpdate
+    lastUpdate = now
+    config.set('DEFAULT', 'btimer', delta + float(config.get('DEFAULT', 'btimer', True)))
+
+def hrBTimer():
+    h = floor(config.get('DEFAULT', 'btimer', True) / 60.0)
+    m = config.get('DEFAULT','btimer', True) % 60
+    return "%d:%02d" % (h, m)
+
+theTemp = "0"
+
+def updateTemp():
+    o = check_call("sensors", shell='true')
+    t = o.search.group(n)
+    global theTemp
+    theTemp = t
+
+def getTemp():
+    return theTemp
