@@ -13,6 +13,7 @@ from zmq.devices.basedevice import ThreadDevice
 
 import core
 from config import config, save_config
+import commands
 
 context = zmq.Context() 
 
@@ -54,6 +55,7 @@ class Status(SocketConnection):
             Status.remaining = (stat.f_bsize * stat.f_bavail) / ((core.depth / 8) * core.channels * core.rate * core.comp_ratio)
             Status.rTime = now
             updateBTimer()
+            updateTemp()
             save_config()
 
         if (now - Status.pTime > 0.33):
@@ -65,7 +67,7 @@ class Status(SocketConnection):
                 d['s'] = core.port.gotSignal()
                 d['f'] = "%s/%s" % (core.depth, str(core.rate)[:2])
                 #                d['bt'] = hrBTimer()
-                #                d['ct'] = getTemp()
+                d['ct'] = int(getTemp())
                 #            if o:
                 self.send(d)
                 #                print(o)
@@ -106,10 +108,11 @@ def hrBTimer():
 theTemp = "0"
 
 def updateTemp():
-    o = check_call("sensors", shell='true')
-    t = o.search.group(n)
+    with open( "/sys/class/thermal/thermal_zone0/temp" ) as tempfile:
+        cpu_temp = tempfile.read()
     global theTemp
-    theTemp = t
+    theTemp = float(cpu_temp)/1000 * 1.8 + 32
+
 
 def getTemp():
     return theTemp

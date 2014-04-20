@@ -36,7 +36,8 @@ $(function() {
 
             $('#buffer').html(s.b + "s");
 
-            $('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
+            //$('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
+            $('#temp').html(s.ct + "&deg;");
 
             $('#signal').html(s.s ? "LOCKED" : "NO SIGNAL");
             
