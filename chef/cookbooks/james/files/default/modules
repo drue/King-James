@@ -8,8 +8,10 @@ lp
 
 # Chip drivers
 coretemp
-dme1737
+#dme1737
 
 # wireless
-rt2800usb
-#8192cu
+#rt2800usb
+#artl8192cu
+#ath9k
+8192cu

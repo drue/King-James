@@ -1,1 +1,2 @@
 depends "apt"
+depends "python"

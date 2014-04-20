@@ -8,8 +8,8 @@ iface eth0 inet dhcp
 #post-down iptables-save > /etc/iptables.rules
 
 # wireless
-auto wlan0
 #allow-hotplug wlan0
+auto wlan0
 iface wlan0 inet static
       address 10.0.0.1
       netmask 255.255.255.0
