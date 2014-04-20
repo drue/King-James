@@ -8,51 +8,53 @@ function zeroPad(num,count)
 }
 
 $(function() {
-    var sock = new io.connect('http://' + window.location.host),
-    peaks = new io.connect('http://' + window.location.host + '/peaks'),
-    ping = new io.connect('http://' + window.location.host + '/ping'),
-    status = new io.connect('http://' + window.location.host + '/status');
+    var sock = new io.connect('http://' + window.location.host);
 
-    peaks.on('message', function(data) {
-        var d = $.parseJSON(data[0]);
-        lightVU(d);
-        $('#maxL').html(d[2]);
-        $('#maxR').html(d[3]);
-    });
-
-
-    status.on('message', function(data) {
-        var s = $.parseJSON(data[0]);
-        var allLeft = s.r / 3600;
-        var hoursLeft = Math.floor(allLeft);
-        var minutesLeft = Math.floor((allLeft - hoursLeft) * 60);
-        $('#timeLeft').html(hoursLeft + ":" + zeroPad(minutesLeft, 2));
-
-        var elapsed = s.t / 3600;
-        var hoursElapsed = Math.floor(elapsed);
-        var minutes = (elapsed - hoursElapsed) * 60;
-        var minutesElapsed = Math.floor(minutes);
-        var secondsElapsed = Math.floor((minutes - minutesElapsed) * 60);
-        $('#timeElapsed').html(zeroPad(hoursElapsed, 2) + ":" +
-                               zeroPad(minutesElapsed, 2) + ":" +
-                               zeroPad(secondsElapsed, 2));
-
-        $('#format').html(s.f);
-
-        $('#buffer').html(s.b + "s");
-
-        $('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
-
-        $('#signal').html(s.s ? "LOCKED" : "NO SIGNAL");
-        
-        if (s.m == 0) {
-            $('#mode').attr('src', '/static/paused.png');
+    sock.on('message', function(data) {
+        var s = data;
+        if (s._t === "peaks") {
+            lightVU(s.p);
+            $('#maxL').html(s.p[2]);
+            $('#maxR').html(s.p[3]);
         }
-        else {
-            $('#mode').attr('src', '/static/recording.png');
+        else if (s._t === "status") {
+            var allLeft = s.r / 3600;
+            var hoursLeft = Math.floor(allLeft);
+            var minutesLeft = Math.floor((allLeft - hoursLeft) * 60);
+            $('#timeLeft').html(hoursLeft + ":" + zeroPad(minutesLeft, 2));
+
+            var elapsed = s.t / 3600;
+            var hoursElapsed = Math.floor(elapsed);
+            var minutes = (elapsed - hoursElapsed) * 60;
+            var minutesElapsed = Math.floor(minutes);
+            var secondsElapsed = Math.floor((minutes - minutesElapsed) * 60);
+            $('#timeElapsed').html(zeroPad(hoursElapsed, 2) + ":" +
+                                   zeroPad(minutesElapsed, 2) + ":" +
+                                   zeroPad(secondsElapsed, 2));
+
+            $('#format').html(s.f);
+
+            $('#buffer').html(s.b + "s");
+
+            $('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
+
+            $('#signal').html(s.s ? "LOCKED" : "NO SIGNAL");
+            
+            if (s.m == 0) {
+                $('#mode').attr('src', '/static/paused.png');
+            }
+            else {
+                $('#mode').attr('src', '/static/recording.png');
+            }
+
         }
+        else if (s._t === "pong")  {
+            var client = decodeDate(data.client);
+            var server = decodeDate(data.server);
+            var now = new Date();
 
-
+            $('#ping').html((now.getTime() - client.getTime()).toString() + ' ms');
+        }
     });
 
 
@@ -78,18 +80,9 @@ $(function() {
                         data[0], data[1], data[2], data[3]);
     }
 
-    // Ping
-    ping.on('message', function(data) {
-        var client = decodeDate(data.client);
-        var server = decodeDate(data.server);
-        var now = new Date();
-
-        $('#ping').html((now.getTime() - client.getTime()).toString() + ' ms');
-    });
-
     function sendPing()
     {
-        ping.json.send({client: encodeDate(new Date()) });
+        sock.json.send({client: encodeDate(new Date()) });
         setTimeout(sendPing, 5000);
     }
     sendPing();

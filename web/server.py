@@ -12,7 +12,7 @@ from tornado.web import RequestHandler, Application, StaticFileHandler
 import core
 
 from commands import RecordHandler, ResetPeaksHandler, ResetBTimerHandler
-from status import Peaks, Status, Ping
+from status import Status
 
 import sys
 import logging
@@ -38,17 +38,12 @@ class IndexHandler(RequestHandler):
         self.render('index.html')
 
 
-class RouterConnection(SocketConnection):
-    __endpoints__ = {'/peaks': Peaks,
-                     '/ping': Ping,
-                     '/status': Status}
-
 def main():
     #setup_logging()
     #core.start()
 
     try:
-        SockRouter = TornadioRouter(RouterConnection)
+        SockRouter = TornadioRouter(Status)
 
         application = Application(SockRouter.apply_routes([(r"/", IndexHandler),
                                                              (r"/record", RecordHandler),

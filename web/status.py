@@ -28,18 +28,26 @@ class Status(SocketConnection):
     rTime = 0
     pTime = 0
     def on_open(self, info):
-        self.socket = context.socket(zmq.SUB)
-        self.socket.connect('ipc:///tmp/progressOut.ipc')
-        self.socket.setsockopt(zmq.SUBSCRIBE, '')
-        self.stream = ZMQStream(self.socket, tornado.ioloop.IOLoop.instance())
-        self.stream.on_recv(self.process)
+        self.prog_socket = context.socket(zmq.SUB)
+        self.prog_socket.connect('ipc:///tmp/progressOut.ipc')
+        self.prog_socket.setsockopt(zmq.SUBSCRIBE, '')
+        self.prog_stream = ZMQStream(self.prog_socket, tornado.ioloop.IOLoop.instance())
+        self.prog_stream.on_recv(self.process_prog)
 
+        self.peak_socket = context.socket(zmq.SUB)
+        self.peak_socket.connect('ipc:///tmp/peaks.ipc')
+        self.peak_socket.setsockopt(zmq.SUBSCRIBE, '')
+        self.peak_stream = ZMQStream(self.peak_socket, tornado.ioloop.IOLoop.instance())
+        self.peak_stream.on_recv(self.process_peaks)
+        
     def on_close(self):
-        self.stream.close()
-        self.socket.close()
+        self.prog_stream.close()
+        self.prog_socket.close()
 
-    def process(self, data):
-        o = []
+        self.peak_stream.close()
+        self.peak_socket.close()
+        
+    def process_prog(self, data):
         now = time()
         if (now - Status.rTime > 30):
             stat = os.statvfs('.')
@@ -48,41 +56,33 @@ class Status(SocketConnection):
             updateBTimer()
             save_config()
 
-        if (now - Status.pTime > 0.5):
+        if (now - Status.pTime > 0.33):
             for msg in data:
                 d = json.loads(msg)
+                d['_t'] = 'status'
                 d['c'] = os.getloadavg()
                 d['r'] = Status.remaining
                 d['s'] = core.port.gotSignal()
                 d['f'] = "%s/%s" % (core.depth, str(core.rate)[:2])
                 #                d['bt'] = hrBTimer()
                 #                d['ct'] = getTemp()
-                o.append(json.dumps(d))
-            if o:
-                self.send(o)
+                #            if o:
+                self.send(d)
                 #                print(o)
             Status.pTime = now
 
+    def process_peaks(self, data):
+        d = {'_t': "peaks", "p":json.loads(data[0])}
+        self.send(d)
 
-class Peaks(SocketConnection):
-    def on_open(self, info):
-        self.socket = context.socket(zmq.SUB)
-        self.socket.connect('ipc:///tmp/peaks.ipc')
-        self.socket.setsockopt(zmq.SUBSCRIBE, '')
-        stream = ZMQStream(self.socket, tornado.ioloop.IOLoop.instance())
-        stream.on_recv(self.do_send)
-
-    def do_send(self, *args, **kwargs):
-        #        print(">>> peakz %s %s" % (args, kwargs))
-        self.send(*args, **kwargs)
-
-
-class Ping(SocketConnection):
     def on_message(self, message):
+        # for handling ping
         now = datetime.datetime.now()
 
         message['server'] = [now.hour, now.minute, now.second, now.microsecond / 1000]
+        message['_t'] = "pong"
         self.send(message)
+            
 
 
 lastUpdate = time()
