@@ -156,8 +156,8 @@ void Spool::initFLAC() {
   FLAC__StreamEncoderInitStatus initted;
   output = fopen64(filename, "w+b");
 
-  // only cache beginning of this huge file we're about to write out and not reuse
-  posix_fadvise(fileno(output), 8192, 0, POSIX_FADV_NOREUSE);
+  // don't cache any of this huge file we're about to write out and not reuse
+  posix_fadvise(fileno(output), 0, 0, POSIX_FADV_NOREUSE);
 
   encoder = FLAC__stream_encoder_new();
   FLAC__stream_encoder_set_channels(encoder, channels);
