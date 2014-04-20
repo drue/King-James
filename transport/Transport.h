@@ -41,7 +41,7 @@ class AlsaTPort {
   unsigned int ring_length;
   int process_flag;
   sem_t finished_sem;
-  AlsaTPort(const char *card, unsigned int bits_per_sample = 24, unsigned int sample_rate = 48000, unsigned int update_interval = 5, unsigned int ring_length = 0, bool run = true);
+  AlsaTPort(const char *card, unsigned int bits_per_sample = 24, unsigned int sample_rate = 48000, unsigned int update_interval = 10, unsigned int ring_length = 0, bool run = true);
   virtual ~AlsaTPort();
   void startRecording(char *path);
   void stopRecording();
