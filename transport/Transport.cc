@@ -75,11 +75,11 @@ void AlsaTPort::xrun(void)
         fprintf(stderr, "Status:\n");
         snd_pcm_status_dump(status, log);
         if ((res = snd_pcm_prepare(handle))<0) {
-          printf("xrun: prepare error: %s", snd_strerror(res));
+          printf("xrun: prepare error: %s\n", snd_strerror(res));
           exit(-1);
         }
         if ((res = snd_pcm_start(handle))<0) {
-          printf("xrun: start error: %s", snd_strerror(res));
+          printf("xrun: start error: %s\n", snd_strerror(res));
         }
         return;		/* ok, data should be accepted again */
 	} if (snd_pcm_status_get_state(status) == SND_PCM_STATE_DRAINING) {

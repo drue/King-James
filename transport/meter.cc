@@ -125,10 +125,10 @@ void Meter::run(void *foo) {
 }
 
 void Meter::tick() {
-  unsigned is, i, c;
+  size_t is, i, c;
   FLAC__int32 *tMax, *ibuf, t;
-  unsigned int frames;
-  unsigned x;
+  size_t frames;
+  size_t x;
   jack_ringbuffer_data_t regions[2];
 
   tMax = (FLAC__int32 *)malloc(sizeof(chans * sizeof(FLAC__int32)));

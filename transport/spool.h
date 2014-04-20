@@ -15,7 +15,7 @@ class buffer {
  public:
   buffer(unsigned int bsize);
   ~buffer();
-  int *buf;
+  FLAC__int32 *buf;
   unsigned int size;
 };
 
