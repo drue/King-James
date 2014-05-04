@@ -1,0 +1,10 @@
+description "wifi"
+
+start on runlevel [2345]
+
+script
+        ifconfig wlan0 10.0.0.1 netmask 255.255.255.0 up
+        hostapd -B /etc/hostapd/hostapd.conf
+        udhcpd
+end script
+

@@ -1,0 +1,6 @@
+description "mount all"
+
+start on runlevel [2345]
+
+exec mount -a
+

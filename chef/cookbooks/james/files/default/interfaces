@@ -28,3 +28,4 @@ iface wlan0 inet static
 # Example to keep MAC address between reboots
 #hwaddress ether DE:AD:BE:EF:CA:FE
 
+
