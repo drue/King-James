@@ -1,9 +1,9 @@
 #
-# Author:: Seth Chisamore <schisamo@opscode.com>
+# Author:: Scott M. Likens <scott@mopub.com>
 # Cookbook Name:: python
-# Recipe:: virtualenv
+# Recipe:: test_exert
 #
-# Copyright 2011, Opscode, Inc.
+# Copyright 2013, MoPub, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,18 @@
 # limitations under the License.
 #
 
-include_recipe "python::pip"
+python_virtualenv "#{Chef::Config[:file_cache_path]}/virtualenv" do
+  interpreter "python"
+  owner "root"
+  group "root"
+  action :create
+end
 
-python_pip "virtualenv" do
-  action :upgrade
-  version node['python']['virtualenv_version']
+python_pip "boto" do
+  action :install
+  virtualenv "#{Chef::Config[:file_cache_path]}/virtualenv"
+end
+
+python_pip "psutil" do
+  action :install
 end

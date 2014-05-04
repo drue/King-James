@@ -1,9 +1,9 @@
 #
-# Author:: Seth Chisamore <schisamo@opscode.com>
+# Author:: Sean Porter <portertech@hw-ops.com>
 # Cookbook Name:: python
-# Recipe:: virtualenv
+# Recipe:: test_virtualenv
 #
-# Copyright 2011, Opscode, Inc.
+# Copyright 2013, Heavy Water Operations, LLC.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,18 @@
 # limitations under the License.
 #
 
-include_recipe "python::pip"
+python_virtualenv "/tmp/virtualenv" do
+  owner "root"
+  group "root"
+  action :create
+end
 
-python_pip "virtualenv" do
-  action :upgrade
-  version node['python']['virtualenv_version']
+python_virtualenv "isolated python environment" do
+  path "/tmp/tobedestroyed"
+  action :create
+end
+
+python_virtualenv "deleting the isolated python environment" do
+  path "/tmp/tobedestroyed"
+  action :delete
 end
