@@ -7,20 +7,13 @@ import core
 from const import *
 from status import resetBTimer
 
-n = 0
-
-LOC="/var/audio"
 
 class RecordHandler(RequestHandler):
-    def newFile(self):
-        global n
-        n+= 1
-        return join(LOC, "%s.flac" % datetime.now().isoformat())
 
     def post(self):
         global mode
         if core.mode == STOPPED:
-            core.port.startRecording(self.newFile())
+            core.start()
             core.mode = RECORDING
         else:
             core.port.stopRecording()

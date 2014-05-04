@@ -51,18 +51,19 @@ class Status(SocketConnection):
     def process_prog(self, data):
         now = time()
         if (now - Status.rTime > 30):
-            stat = os.statvfs('.')
+            stat = os.statvfs('/var/audio')
             Status.remaining = (stat.f_bsize * stat.f_bavail) / ((core.depth / 8) * core.channels * core.rate * core.comp_ratio)
             Status.rTime = now
             updateBTimer()
             updateTemp()
             save_config()
+            #            core.sync_dir()
 
-        if (now - Status.pTime > 0.33):
+        if (now - Status.pTime > .33):
             for msg in data:
                 d = json.loads(msg)
                 d['_t'] = 'status'
-                d['c'] = os.getloadavg()
+                # d['c'] = os.getloadavg()
                 d['r'] = Status.remaining
                 d['s'] = core.port.gotSignal()
                 d['f'] = "%s/%s" % (core.depth, str(core.rate)[:2])

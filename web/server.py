@@ -39,8 +39,8 @@ class IndexHandler(RequestHandler):
 
 
 def main():
+    # turn on heavy debug logging
     #setup_logging()
-    #core.start()
 
     try:
         SockRouter = TornadioRouter(Status)
