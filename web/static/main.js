@@ -8,10 +8,14 @@ function zeroPad(num,count)
 }
 
 $(function() {
-    var sock = new io.connect('http://' + window.location.host);
+    var sock = new SockJS('http://' + window.location.host);
 
-    sock.on('message', function(data) {
-        var s = data;
+    sock.onopen = function(data) {
+        sendPing();
+    };
+
+    sock.onmessage =  function(data) {
+        var s = data.data;
         if (s._t === "peaks") {
             lightVU(s.p);
             $('#maxL').html(s.p[2]);
@@ -50,13 +54,13 @@ $(function() {
 
         }
         else if (s._t === "pong")  {
-            var client = decodeDate(data.client);
-            var server = decodeDate(data.server);
+            var client = decodeDate(s.client);
+            var server = decodeDate(s.server);
             var now = new Date();
 
             $('#ping').html((now.getTime() - client.getTime()).toString() + ' ms');
         }
-    });
+    };
 
 
     function getPrintableDate(date) {
@@ -83,8 +87,7 @@ $(function() {
 
     function sendPing()
     {
-        sock.json.send({client: encodeDate(new Date()) });
+        sock.send(JSON.stringify({client: encodeDate(new Date()) }));
         setTimeout(sendPing, 5000);
     }
-    sendPing();
 });

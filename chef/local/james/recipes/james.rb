@@ -17,7 +17,7 @@ python_pip "tornado" do
   action :install
 end
 
-python_pip "tornadio2" do
+python_pip "https://github.com/mrjoes/sockjs-tornado/archive/b68096e9d30d1e37e39f6d502dbaf46f688704c3.zip" do
   action :install
 end
 
@@ -43,4 +43,3 @@ service "james" do
   supports :status => true, :restart => true, :reload => true
   action :enable
 end
-

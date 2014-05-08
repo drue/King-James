@@ -5,7 +5,7 @@ ioloop.install()
 
 import os
 
-from tornadio2 import SocketConnection, TornadioRouter, SocketServer
+from sockjs.tornado import SockJSRouter, SockJSConnection
 import tornado
 from tornado.web import RequestHandler, Application, StaticFileHandler
 
@@ -43,7 +43,7 @@ def main():
     #setup_logging()
 
     try:
-        SockRouter = TornadioRouter(Status)
+        SockRouter = SockJSRouter(Status)
 
         application = Application(SockRouter.apply_routes([(r"/", IndexHandler),
                                                              (r"/record", RecordHandler),
@@ -54,7 +54,8 @@ def main():
                                    static_path = os.path.join(os.path.dirname(__file__), "static")
                                    )
 
-        socketio_server = SocketServer(application)
+        application.listen(80)
+        ioloop.IOLoop.instance().start()
     finally:
         core.port.stop()
         core.port.waitTillFinished()

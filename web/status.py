@@ -6,7 +6,7 @@ import os
 from subprocess import check_call
 
 import tornado
-from tornadio2 import SocketConnection
+from sockjs.tornado import SockJSConnection
 import zmq
 from zmq.eventloop.zmqstream import ZMQStream
 from zmq.devices.basedevice import ThreadDevice
@@ -24,7 +24,7 @@ pr.bind_out('ipc:///tmp/progressOut.ipc')
 pr.setsockopt_in(zmq.SUBSCRIBE, '')
 pr.start()
 
-class Status(SocketConnection):
+class Status(SockJSConnection):
     remaining = 0
     rTime = 0
     pTime = 0
@@ -81,6 +81,8 @@ class Status(SocketConnection):
     def on_message(self, message):
         # for handling ping
         now = datetime.datetime.now()
+
+        message = json.loads(message)
 
         message['server'] = [now.hour, now.minute, now.second, now.microsecond / 1000]
         message['_t'] = "pong"
