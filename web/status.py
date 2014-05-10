@@ -50,6 +50,7 @@ class Status(SockJSConnection):
         
     def process_prog(self, data):
         now = time()
+        
         if (now - Status.rTime > 30):
             stat = os.statvfs('/var/audio')
             Status.remaining = (stat.f_bsize * stat.f_bavail) / ((core.depth / 8) * core.channels * core.rate * core.comp_ratio)
@@ -59,20 +60,19 @@ class Status(SockJSConnection):
             save_config()
             #            core.sync_dir()
 
-        if (now - Status.pTime > .33):
-            for msg in data:
-                d = json.loads(msg)
-                d['_t'] = 'status'
-                # d['c'] = os.getloadavg()
-                d['r'] = Status.remaining
-                d['s'] = core.port.gotSignal()
-                d['f'] = "%s/%s" % (core.depth, str(core.rate)[:2])
-                #                d['bt'] = hrBTimer()
-                d['ct'] = int(getTemp())
-                #            if o:
-                self.send(d)
-                #                print(o)
-            Status.pTime = now
+        for msg in data:
+            d = json.loads(msg)
+            d['_t'] = 'status'
+            # d['c'] = os.getloadavg()
+            d['r'] = Status.remaining
+            d['s'] = core.port.gotSignal()
+            d['ss'] = core.depth
+            d['sr'] = core.rate
+            #                d['bt'] = hrBTimer()
+            d['ct'] = int(getTemp())
+            #            if o:
+            self.send(d)
+        Status.pTime = now
 
     def process_peaks(self, data):
         d = {'_t': "peaks", "p":json.loads(data[0])}

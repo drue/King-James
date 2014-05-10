@@ -108,7 +108,7 @@ void Spool::pushItem(buffer& buf) {
   if (send_progress && aFrames - lastProgress > sample_rate / channels / 2) {
     lastProgress = aFrames;
     bufLength = Q.size() * buf.size / 4 / channels / sample_rate;
-    sprintf(progMsg, "{\"t\":%.0f, \"m\":%d, \"b\":%d}", floor(oFrames / sample_rate), 
+    sprintf(progMsg, "{\"t\":%lld, \"m\":%d, \"b\":%d}", oFrames, 
             started ? 1 : 0, bufLength);
     zmq::message_t msg(progMsg, strlen(progMsg), NULL);
     socket->send(msg);
