@@ -23,26 +23,33 @@ port = transport.newTPort(card, depth, rate)
 
 LOC="/var/audio"
 
-def start():
-
+def currentFilename(set=False):    
     try:
         n = int(config.get('DEFAULT', 'nfile'))
     except ConfigParser.NoOptionError, ValueError:
         n = 0
-    n += 1
-    
-    config.set('DEFAULT', 'nfile', str(n))
-    save_config()
-    
-    path = os.path.join(LOC, "recording-%05d.flac" % n)
 
-    port.startRecording(path)
-    mode = const.RECORDING
+    if set:
+        n += 1
+        config.set('DEFAULT', 'nfile', str(n))
+        save_config()
+    return "recording-%05d.flac" % n
+
+def start():
+    global mode
+    if mode == const.STOPPED:
+        path = os.path.join(LOC, currentFilename(set=True))
+
+        port.startRecording(path)
+        mode = const.RECORDING
 
 def stop():
-    port.stopRecording()
-    #    sync_dir()
-    mode = const.STOPPED
+    global mode
+    if mode == const.RECORDING:
+        fname = currentFilename()
+        port.stopRecording()
+        #    sync_dir()
+        mode = const.STOPPED
 
 def sync_dir():
     d = os.open(LOC, os.O_RDONLY | os.O_DIRECTORY)
