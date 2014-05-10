@@ -50,7 +50,6 @@ def main():
                                                              (r"/resetPeaks", ResetPeaksHandler),
                                                              (r"/resetBTimer", ResetBTimerHandler),
                                                              (r"/flac/(.*)",tornado.web.StaticFileHandler, {"path": "."},)]),
-                                   socket_io_port = 80,
                                    static_path = os.path.join(os.path.dirname(__file__), "static")
                                    )
 
