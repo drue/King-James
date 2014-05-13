@@ -1,7 +1,13 @@
 from ConfigParser import ConfigParser
+import sys
+
+if sys.DEV_MODE:
+    conf_path = "james.conf"
+else:
+    conf_path = "/etc/james/james.conf"
 
 config = ConfigParser()
-config.read("/etc/james/james.conf")
+config.read(conf_path)
 
 def save_config():
-    config.write(open("/etc/james/james.conf", "w"))
+    config.write(open(conf_path, "w"))

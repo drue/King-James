@@ -10,10 +10,12 @@ from sockjs.tornado import SockJSConnection
 import zmq
 from zmq.eventloop.zmqstream import ZMQStream
 from zmq.devices.basedevice import ThreadDevice
+from ConfigParser import NoOptionError
 
 import core
 from config import config, save_config
 import commands
+import sys
 
 context = zmq.Context() 
 
@@ -52,7 +54,10 @@ class Status(SockJSConnection):
         now = time()
         
         if (now - Status.rTime > 30):
-            stat = os.statvfs('/var/audio')
+            if sys.DEV_MODE:
+                stat = os.statvfs('.')
+            else:
+                stat = os.statvfs('/var/audio')
             Status.remaining = (stat.f_bsize * stat.f_bavail) / ((core.depth / 8) * core.channels * core.rate * core.comp_ratio)
             Status.rTime = now
             updateBTimer()
@@ -101,16 +106,23 @@ def updateBTimer():
     now = time()
     delta = now - lastUpdate
     lastUpdate = now
-    config.set('DEFAULT', 'btimer', delta + float(config.get('DEFAULT', 'btimer', True)))
+    try:
+        saved = float(config.get('DEFAULT', 'btimer', True))
+    except NoOptionError:
+        saved = 0
+    config.set('DEFAULT', 'btimer', delta + saved)
 
 def hrBTimer():
-    h = floor(config.get('DEFAULT', 'btimer', True) / 60.0)
-    m = config.get('DEFAULT','btimer', True) % 60
+    h = floor(config.get('DEFAULT', 'btimer' / 60.0))
+    m = config.get('DEFAULT','btimer') % 60
     return "%d:%02d" % (h, m)
 
 theTemp = "0"
 
 def updateTemp():
+    if sys.DEV_MODE:
+        return 0
+    
     with open( "/sys/class/thermal/thermal_zone0/temp" ) as tempfile:
         cpu_temp = tempfile.read()
     global theTemp

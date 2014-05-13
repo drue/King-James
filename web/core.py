@@ -2,7 +2,8 @@ import os
 
 os.system("alsactl restore")
 
-import transport
+import sys
+
 import const
 from config import config, save_config
 import ConfigParser
@@ -18,9 +19,13 @@ card = "0"
 #card = "1"
 comp_ratio = .7
 
-
-port = transport.newTPort(card, depth, rate)
-
+if not sys.DEV_MODE:
+    import transport
+    port = transport.newTPort(card, depth, rate)
+else:
+    from devport import DevPort
+    port = DevPort(card, depth, rate)
+    
 LOC="/var/audio"
 
 def currentFilename(set=False):    
@@ -39,7 +44,6 @@ def start():
     global mode
     if mode == const.STOPPED:
         path = os.path.join(LOC, currentFilename(set=True))
-
         port.startRecording(path)
         mode = const.RECORDING
 

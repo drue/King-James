@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+import sys
+
+try:
+    sys.argv.index("DEBUG")
+except ValueError:
+    sys.DEV_MODE = False
+else:
+    sys.DEV_MODE = True
+
 from zmq.eventloop import ioloop
 ioloop.install()
 
@@ -9,12 +18,10 @@ from sockjs.tornado import SockJSRouter, SockJSConnection
 import tornado
 from tornado.web import RequestHandler, Application, StaticFileHandler
 
-import core
 
 from commands import RecordHandler, ResetPeaksHandler, ResetBTimerHandler
 from status import Status
 
-import sys
 import logging
 
 
@@ -39,6 +46,8 @@ class IndexHandler(RequestHandler):
 
 
 def main():
+    import core
+
     # turn on heavy debug logging
     #setup_logging()
 
@@ -53,8 +62,14 @@ def main():
                                    static_path = os.path.join(os.path.dirname(__file__), "static")
                                    )
 
-        application.listen(80)
+        if not sys.DEV_MODE:
+            port = 80
+        else:
+            port = 8080
+
+        application.listen(port)
         ioloop.IOLoop.instance().start()
+        
     finally:
         core.port.stop()
         core.port.waitTillFinished()
@@ -62,4 +77,3 @@ def main():
 
 if __name__=="__main__":
     main()
-    
