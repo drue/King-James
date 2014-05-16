@@ -21,38 +21,38 @@ function RecordCtrl ($scope, sock) {
         var s = data.data;
         if (s._t === "peaks") {
             lightVU(s.p);
-            $('#maxL').html(s.p[2]);
-            $('#maxR').html(s.p[3]);
+            $scope.maxL = s.p[2];
+            $scope.maxR = s.p[3];
         }
         else if (s._t === "status") {
             var allLeft = s.r / 3600;
             var hoursLeft = Math.floor(allLeft);
             var minutesLeft = Math.floor((allLeft - hoursLeft) * 60);
-            $('#timeLeft').html(hoursLeft + ":" + zeroPad(minutesLeft, 2));
+            $scope.timeLeft = hoursLeft + ":" + zeroPad(minutesLeft, 2);
 
             var elapsed = s.t / s.sr / 3600;
             var hoursElapsed = Math.floor(elapsed);
             var minutes = (elapsed - hoursElapsed) * 60;
             var minutesElapsed = Math.floor(minutes);
             var secondsElapsed = Math.floor((minutes - minutesElapsed) * 60);
-            $('#timeElapsed').html(zeroPad(hoursElapsed, 2) + ":" +
+            $scope.timeElapsed  = zeroPad(hoursElapsed, 2) + ":" +
                                    zeroPad(minutesElapsed, 2) + ":" +
-                                   zeroPad(secondsElapsed, 2));
+                                   zeroPad(secondsElapsed, 2);
 
-            $('#format').html(s.ss.toString() + "/" + s.sr.toString().slice(0,2));
+            $scope.format = s.ss.toString() + "/" + s.sr.toString().slice(0,2);
 
-            $('#buffer').html(s.b + "s");
+            $scope.buffer = s.b + "s";
 
             //$('#load').html("(" + s.c[0] + ", " + s.c[1] + ", " + s.c[2] + ")");
-            $('#temp').html(s.ct + "&deg;");
+            $scope.temp = s.ct + "&deg;";
 
-            $('#signal').html(s.s ? "LOCKED" : "NO SIGNAL");
+            $scope.signal = s.s ? "LOCKED" : "NO SIGNAL";
             
             if (s.m == 0) {
-                $('#mode').attr('src', '/static/paused.png');
+                $scope.mode = '/static/paused.png';
             }
             else {
-                $('#mode').attr('src', '/static/recording.png');
+                $scope.mode = '/static/recording.png';
             }
 
         }
@@ -61,7 +61,7 @@ function RecordCtrl ($scope, sock) {
             var server = decodeDate(s.server);
             var now = new Date();
 
-            $('#ping').html((now.getTime() - client.getTime()).toString() + ' ms');
+            $scope.ping = (now.getTime() - client.getTime()).toString() + ' ms';
         }
     })
 };

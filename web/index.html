@@ -26,23 +26,23 @@
                                                      });
                                               return false;
                                               });</script>
-                    <input type="image" name="m" id="mode" src="/static/paused.png"></img>
+                    <input type="image" name="m" id="mode" ng-src="{{mode}}"></img>
                         </form>
-                <div id="timeElapsed"></div>
+                <div id="timeElapsed" ng-bind="timeElapsed"></div>
                 <div id="subStatus">
                     <div class="topSubStatus">
-                        <span id="format" class="left">24/88</span>
+                        <span id="format" class="left" ng-bind="format"></span>
                         <span id="bTimer" class="center" onClick="$.ajax({ type: 'POST', url: '/resetBTimer', success: function() { } }); return false; });">
                             0:00
                         </span>
-                        <span id="timeLeft" class="right"></span>
+                        <span id="timeLeft" class="right" ng-bind="timeLeft"></span>
                         <div class="clear"></div>
                     </div>
                     <hr/>
                     <div class="bottomSubStatus">
-                        <span id="buffer" class="left"></span>
-                        <span id="temp" class="center"></span>
-                        <span id="ping" class="right"></span>
+                        <span id="buffer" class="left" ng-bind="buffer"></span>
+                        <span id="temp" class="center" ng=bind="temp"></span>
+                        <span id="ping" class="right" ng=bind="ping"></span>
                     </div>
                 </div>
                 <div class="clear"></div>
@@ -66,7 +66,7 @@
                         <td> <img class="vuled" id="l2" src="/static/black_led.png"></td>
                         <td> <img class="vuled" id="l1" src="/static/black_led.png"></td>
                         <td> <img class="vuled" id="l0" src="/static/black_led.png"></td>
-                        <td>   <div class="peak" id="maxL"></div></td>
+                        <td>   <div class="peak" id="maxL" ng-bind="maxL"></div></td>
                     </tr>
                         <tr>
                             <td class="legend">48</td>
@@ -119,7 +119,7 @@
                             <td> <img class="vuled" id="r2" src="/static/black_led.png"></td>
                             <td> <img class="vuled" id="r1" src="/static/black_led.png"></td>
                             <td> <img class="vuled" id="r0" src="/static/black_led.png"></td>
-                            <td>   <div class="peak" id="maxR"></div></td>
+                            <td>   <div class="peak" id="maxR" ng-bind="maxR"></div></td>
                         </tr>
                     </table>
                 </center>
