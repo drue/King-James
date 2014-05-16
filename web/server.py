@@ -55,12 +55,14 @@ def main():
         SockRouter = SockJSRouter(Status)
 
         application = Application(SockRouter.apply_routes([(r"/", IndexHandler),
-                                                             (r"/record", RecordHandler),
-                                                             (r"/resetPeaks", ResetPeaksHandler),
-                                                             (r"/resetBTimer", ResetBTimerHandler),
-                                                             (r"/flac/(.*)",tornado.web.StaticFileHandler, {"path": "."},)]),
-                                   static_path = os.path.join(os.path.dirname(__file__), "static")
-                                   )
+                                                           (r"/record", RecordHandler),
+                                                           (r"/resetPeaks", ResetPeaksHandler),
+                                                           (r"/resetBTimer", ResetBTimerHandler),
+                                                           (r"/flac/(.*)",tornado.web.StaticFileHandler, {"path": "."},)]),
+                                                           static_path = os.path.join(os.path.dirname(__file__), "static"),
+                                                           debug = sys.DEV_MODE
+            )
+        
 
         if not sys.DEV_MODE:
             port = 80

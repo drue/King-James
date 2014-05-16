@@ -1,20 +1,23 @@
-function zeroPad(num,count)
-{
-    var numZeropad = num + '';
-    while(numZeropad.length < count) {
-        numZeropad = "0" + numZeropad;
-    }
-    return numZeropad;
-}
+var app = angular.module('James', [
+    'bd.sockjs'
+])
+    .factory('sock', function (socketFactory) {
+        return socketFactory({url:'http://' + window.location.host, debug:true});
+    });
 
-$(function() {
-    var sock = new SockJS('http://' + window.location.host);
+function RecordCtrl ($scope, sock) {
 
-    sock.onopen = function(data) {
+    sock.setHandler('open', function(data) {
+        function sendPing()
+        {
+            sock.send(JSON.stringify({client: encodeDate(new Date()) }));
+            setTimeout(sendPing, 5000);
+        }
+
         sendPing();
-    };
+    });
 
-    sock.onmessage =  function(data) {
+    sock.setHandler('message', function(data) {
         var s = data.data;
         if (s._t === "peaks") {
             lightVU(s.p);
@@ -60,34 +63,37 @@ $(function() {
 
             $('#ping').html((now.getTime() - client.getTime()).toString() + ' ms');
         }
-    };
+    })
+};
 
-
-    function getPrintableDate(date) {
-        return date.getFullYear().toString() + '/' +
-            (date.getMonth()+1).toString() + '/' +
-            date.getDate().toString() + ' ' +
-            date.getHours().toString() + ':' +
-            date.getMinutes().toString() + ':' +
-            date.getSeconds().toString() + '.' +
-            date.getMilliseconds().toString();
+function zeroPad(num,count)
+{
+    var numZeropad = num + '';
+    while(numZeropad.length < count) {
+        numZeropad = "0" + numZeropad;
     }
+    return numZeropad;
+}
 
-    function encodeDate(date)
-    {
-        return [date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()];
-    }
+function getPrintableDate(date) {
+    return date.getFullYear().toString() + '/' +
+        (date.getMonth()+1).toString() + '/' +
+        date.getDate().toString() + ' ' +
+        date.getHours().toString() + ':' +
+        date.getMinutes().toString() + ':' +
+        date.getSeconds().toString() + '.' +
+        date.getMilliseconds().toString();
+}
 
-    function decodeDate(data)
-    {
-        var date = new Date();
-        return new Date(date.getFullYear(), date.getMonth(), date.getDate(),
-                        data[0], data[1], data[2], data[3]);
-    }
+function encodeDate(date)
+{
+    return [date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()];
+}
 
-    function sendPing()
-    {
-        sock.send(JSON.stringify({client: encodeDate(new Date()) }));
-        setTimeout(sendPing, 5000);
-    }
-});
+function decodeDate(data)
+{
+    var date = new Date();
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(),
+                    data[0], data[1], data[2], data[3]);
+}
+

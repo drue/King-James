@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="James">
     <head>
         <meta name="viewport" content="width=480" />
         <script src="/static/jquery.min.js"></script>
         <script src="/static/sockjs.min.js"></script>
         <script src="/static/vu.js"></script>
+        <script src="/static/angular.js"></script>
+        <script src="/static/ng-socket.js"></script>
         <script src="/static/main.js"></script>
         <link rel="stylesheet" type="text/css" href="/static/style.css"/>
         <title>Recorder Status</title>
     </head>
     <body   bgcolor="#BDBDBD">
-        <div id="ui">
+<div id="ui" ng-controller="RecordCtrl">
             <div id="status">
                 <form action="javascript:true;" id="modeform">
                     <script type="text/javascript">
