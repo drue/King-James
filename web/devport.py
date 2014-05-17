@@ -16,8 +16,12 @@ class DevPort(object):
         self.prog_socket = context.socket(zmq.PUB)
         self.prog_socket.connect('ipc:///tmp/progressIn.ipc')
         self.prog_stream = ZMQStream(self.prog_socket, IOLoop.instance())
-
         self.scheduleProgress()
+        
+        self.peak_socket = context.socket(zmq.PUB)
+        self.peak_socket.bind('ipc:///tmp/peaks.ipc')
+        self.peak_stream = ZMQStream(self.peak_socket, IOLoop.instance())
+        self.sendPeaks()
         
     def startRecording(self, path):
         self.curPath = path
@@ -51,6 +55,11 @@ class DevPort(object):
         s = json.dumps(d)
         self.prog_stream.send(s)        
         IOLoop.instance().add_timeout(time() + .333, self.sendProgress)
+
+    def sendPeaks(self):
+        l = [-140, -140, -140, -140]
+        self.peak_stream.send(json.dumps(l))
+        IOLoop.instance().add_timeout(time() + .1, self.sendPeaks)
         
     def scheduleProgress(self):
         IOLoop.instance().add_timeout(time() + .333, self.sendProgress)

@@ -20,7 +20,7 @@ function RecordCtrl ($scope, sock) {
     sock.setHandler('message', function(data) {
         var s = data.data;
         if (s._t === "peaks") {
-            lightVU(s.p);
+            lightVU($scope, s.p);
             $scope.maxL = s.p[2];
             $scope.maxR = s.p[3];
         }

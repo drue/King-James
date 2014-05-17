@@ -1,5 +1,5 @@
 
-function lightVU(peaks) {
+function lightVU($scope, peaks) {
   var l = peaks[0];
   var r = peaks[1];
   var maxL = peaks[2];
@@ -21,10 +21,10 @@ function lightVU(peaks) {
       light = green;
       if(led == -1)
         light = amber;
-      $("#l" + Math.abs(led)).attr('src', light);
+      $scope["l" + Math.abs(led)] = light;
     }
     else if (!(maxL >= led && maxL < leds[i+1]))
-      $("#l" + Math.abs(led)).attr('src', black);
+      $scope["l" + Math.abs(led)] = black;
 
     if (r > led || (maxR >= led && maxR < leds[i+1])) {
       light = green;

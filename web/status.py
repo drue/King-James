@@ -39,7 +39,7 @@ class Status(SockJSConnection):
 
         self.peak_socket = context.socket(zmq.SUB)
         self.peak_socket.connect('ipc:///tmp/peaks.ipc')
-        self.peak_socket.setsockopt(zmq.SUBSCRIBE, '')
+        self.peak_socket.setsockopt(zmq.SUBSCRIBE, '')        
         self.peak_stream = ZMQStream(self.peak_socket, tornado.ioloop.IOLoop.instance())
         self.peak_stream.on_recv(self.process_peaks)
         
