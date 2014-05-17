@@ -42,7 +42,7 @@ def setup_logging(level=logging.DEBUG):
 
 class IndexHandler(RequestHandler):
     def get(self):
-        self.write(open('index.html').read())
+        self.write(open(os.path.join(os.path.dirname(__file__), 'index.html')).read())
 
 
 def main():
