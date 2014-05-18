@@ -1,3 +1,22 @@
+.container {
+     padding-right: 0; /*15px in bootstrap.css*/
+     padding-left: 0;  /*idem*/
+     margin-right: auto;
+     margin-left: auto;
+     width: 480px !important;
+}
+
+.row.no-gutter {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.row.no-gutter [class*='col-']:not(:first-child),
+.row.no-gutter [class*='col-']:not(:last-child) {
+  padding-right: 0;
+  padding-left: 0;
+}
+
 #ui {
     width: 480px;
     position: relative;
@@ -13,9 +32,14 @@ img.vuled {
     border-width:0px;
 }
 
+td {
+  width: 150px;
+  padding-left: 4px;
+}
+
 #vu {
-    text-align: center; 
-    align: center; 
+    text-align: center;
+    align: center;
     vertical-align: middle;
     width: 480px;
 }
@@ -24,6 +48,7 @@ img.vuled {
     height:22px;
     font-size:15px;
     text-align: center;
+    align: center;
 }
 .peak {
     font-size:20px;
@@ -31,12 +56,15 @@ img.vuled {
     vertical-align: middle;
 }
 
+#elapsed {
+  padding-left: 10px;
+}
+
 #timeElapsed {
     position: relative;
-    float: left;
     font-size: 38px;
-    margin-top: 10px;
-    margin-left: 10px;
+    margin-top: 6px;
+    text-alight: center;
 }
 
 #format {
@@ -70,6 +98,7 @@ width:30%;
     float: right;
     padding-left: 8px;
     margin-right: 10px;
+    padding-top: 10px;
     width: 250px;
 }
 
@@ -100,6 +129,10 @@ width:30%;
     width:50%;
 }
 
+#timeLeft {
+  text-align: right;
+}
+
 .topSubStatus {
     font-size:20px;
     margin-bottom:-5px;
@@ -111,9 +144,14 @@ width:30%;
     font-size:14px;
 }
 
+#resetPeaksForm {
+  padding-left: 5px;
+}
+
 #reset {
     width:35px;
     font-size:12px;
+    align: center;
 }
 
 .button {

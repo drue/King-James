@@ -17,10 +17,12 @@
     "test",
     "tests"
   ],
-"dependencies": {
-"jquery" : "~2.1.1",
-"sockjs-client":"~0.3.4",
-"angular-latest":"~1.2.16",
-"angular-sockjs":"https://github.com/bendrucker/angular-sockjs.git#master"
-}
+  "dependencies": {
+    "jquery": "~2.1.1",
+    "sockjs-client": "~0.3.4",
+    "angular-latest": "~1.2.16",
+    "angular-sockjs": "https://github.com/bendrucker/angular-sockjs.git#master",
+    "angular-strap": "~2.0.2",
+    "bootstrap": "~3.1.1"
+  }
 }
