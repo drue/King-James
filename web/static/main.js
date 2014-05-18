@@ -1,5 +1,6 @@
 var app = angular.module('James', [
-    'bd.sockjs'
+    'bd.sockjs',
+    'mgcrea.ngStrap',
 ])
     .factory('sock', function (socketFactory) {
         return socketFactory({url:'http://' + window.location.host, debug:true});
