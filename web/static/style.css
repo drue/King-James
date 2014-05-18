@@ -17,6 +17,18 @@
   padding-left: 0;
 }
 
+.row.meta-gutter {
+  padding-top: 10px;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.row.meta-gutter [class*='col-']:not(:first-child),
+.row.meta-gutter [class*='col-']:not(:last-child) {
+  padding-right: 0;
+  padding-left: 0;
+}
+
 #ui {
     width: 480px;
     position: relative;
@@ -41,7 +53,6 @@ td {
     text-align: center;
     align: center;
     vertical-align: middle;
-    width: 480px;
 }
 .legend {
     width:22px;
@@ -64,7 +75,7 @@ td {
     position: relative;
     font-size: 38px;
     margin-top: 6px;
-    text-alight: center;
+    text-align: center;
 }
 
 #format {
@@ -95,11 +106,11 @@ width:30%;
 }
 
 #subStatus {
-    float: right;
-    padding-left: 8px;
-    margin-right: 10px;
-    padding-top: 10px;
-    width: 250px;
+  float: right;
+  padding-left: 30px;
+  margin-right:-24px;
+  padding-top: 10px;
+  width: 295px;
 }
 
 .clear {
@@ -129,6 +140,10 @@ width:30%;
     width:50%;
 }
 
+#ping {
+  text-align: right;
+}
+
 #timeLeft {
   text-align: right;
 }
@@ -137,6 +152,7 @@ width:30%;
     font-size:20px;
     margin-bottom:-5px;
     width: 100%;
+    border-bottom: 1px;
 }
 
 .bottomSubStatus {
