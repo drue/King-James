@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <script src="/static/jquery.min.js"></script>
   <script src="/static/sockjs.min.js"></script>
   <script src="/static/vu.js"></script>
@@ -17,9 +18,9 @@
 </head>
 <body bgcolor="#BDBDBD" class="container">
   <div ng-controller="RecordCtrl">
-    <div class="row no-gutter">
+    <div class="row">
       <div id="status">
-        <div id="elapsed" class="col-xs-5">
+        <div id="elapsed" class="col-md-5">
           <div class="row">
             <form action="javascript:true;" id="modeform" class="col-xs-3">
               <script type="text/javascript">
@@ -39,7 +40,7 @@
             <div id="timeElapsed" ng-bind="timeElapsed" class="col-xs-9"></div>
           </div>
         </div>
-        <div id="subStatus" class="col-xs-7">
+        <div id="subStatus" class="col-md-7">
           <div class="topSubStatus row">
             <span id="format" class="col-xs-4" ng-bind="format"></span>
             <span id="bTimer" class="col-xs-4" onClick="$.ajax({
@@ -140,10 +141,12 @@
       </div>
     </div>
     <div class="row">
-      <form name="datepickerForm" class="form-inline" role="form">
+      <form name="metadataform" class="form-inline" role="form">
         <div class="row meta-gutter">
           <div class="col-xs-2">
-            <input type="text" class="form-control" placeholder="date" bs-datepicker ng-model="showDate">
+            <input type="text" class="form-control" placeholder="date"
+                bs-datepicker data-autoclose="true"
+                ng-model="showDate">
           </div>
           <div class="col-xs-4">
             <input type="text" class="form-control" placeholder="band">
