@@ -1,6 +1,6 @@
 import os
 
-os.system("alsactl restore")
+#os.system("alsactl restore")
 
 import sys
 
