@@ -44,7 +44,11 @@ class IndexHandler(RequestHandler):
     def get(self):
         self.write(open(os.path.join(os.path.dirname(__file__), 'index.html')).read())
 
-
+class HAMLFileHandler(tornado.web.StaticFileHandler):
+   def write(self, content):
+     from pyhaml.haml import to_html
+     tornado.web.StaticFileHandler.write(self, to_html(content))
+     
 def main():
     import core
 

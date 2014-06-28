@@ -6,7 +6,15 @@ var app = angular.module('James', [
         return socketFactory({url:'http://' + window.location.host, debug:true});
     });
 
-function RecordCtrl ($scope, sock) {
+function RecordCtrl ($scope, sock, $http) {
+
+    $scope.resetPeaks = function() {
+        $http.post("/resetPeaks", {});
+    }
+
+    $scope.record = function() {
+        $http.post("/record", {});
+    }
 
     sock.setHandler('open', function(data) {
         function sendPing()
@@ -48,7 +56,7 @@ function RecordCtrl ($scope, sock) {
             $scope.temp = s.ct + "&deg;";
 
             $scope.signal = s.s ? "LOCKED" : "NO SIGNAL";
-            
+
             if (s.m == 0) {
                 $scope.mode = '/static/paused.png';
             }
@@ -97,4 +105,3 @@ function decodeDate(data)
     return new Date(date.getFullYear(), date.getMonth(), date.getDate(),
                     data[0], data[1], data[2], data[3]);
 }
-

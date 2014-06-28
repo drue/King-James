@@ -22,21 +22,9 @@
       <div id="status">
         <div id="elapsed" class="col-md-5">
           <div class="row">
-            <form action="javascript:true;" id="modeform" class="col-xs-3">
-            <script type="text/javascript">
-            $("#modeform").submit(function() {
-              $.ajax({
-                type: "POST",
-                url: "/record",
-                data: $("#modeform").serializeArray(),
-                success: function() {
-                }
-              });
-              return false;
-            });
-            </script>
-            <input type="image" name="m" id="mode" ng-src="{{mode}}"></input>
-          </form>
+            <div id="modeform" class="col-xs-3">
+            <img id="mode" ng-src="{{mode}}" ng-click="record()">
+          </div>
           <div id="timeElapsed" ng-bind="timeElapsed" class="col-xs-9"></div>
         </div>
       </div>
@@ -100,66 +88,54 @@
               <td class="legend">1</td>
               <td class="legend">FS</td>
               <td>
-                <form action="javascript:true;" id="resetPeaksForm">
-                <script type="text/javascript">
-                $("#resetPeaksForm").submit(function() {
-                  $.ajax({
-                    type: "POST",
-                    url: "/resetPeaks",
-                    data: $("#resetPeaksForm").serializeArray(),
-                    success: function() {
-                    }
-                  });
-                  return false;
-                });
-                </script>
-                <button id="reset" class="button">RS</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td> <img class="vuled" id="r48" ng-src="{{r48}}"></td>
-            <td> <img class="vuled" id="r42" ng-src="{{r42}}"></td>
-            <td> <img class="vuled" id="r36" ng-src="{{r36}}"></td>
-            <td> <img class="vuled" id="r30" ng-src="{{r30}}"></td>
-            <td> <img class="vuled" id="r24" ng-src="{{r24}}"></td>
-            <td> <img class="vuled" id="r18" ng-src="{{r18}}"></td>
-            <td> <img class="vuled" id="r15" ng-src="{{r15}}"></td>
-            <td> <img class="vuled" id="r12" ng-src="{{r12}}">  </td>
-            <td> <img class="vuled" id="r9" ng-src="{{r9}}"></td>
-            <td> <img class="vuled" id="r6" ng-src="{{r6}}"></td>
-            <td> <img class="vuled" id="r5" ng-src="{{r5}}"></td>
-            <td> <img class="vuled" id="r4" ng-src="{{r4}}"></td>
-            <td> <img class="vuled" id="r3" ng-src="{{r3}}"></td>
-            <td> <img class="vuled" id="r2" ng-src="{{r2}}"></td>
-            <td> <img class="vuled" id="r1" ng-src="{{r1}}"></td>
-            <td> <img class="vuled" id="r0" ng-src="{{r0}}"></td>
-            <td>   <div class="peak" id="maxR" ng-bind="maxR"></div></td>
-          </tr>
-        </table>
-      </center>
+                <button id="reset" class="button" ng-click="resetPeaks();">
+                  RS
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td> <img class="vuled" id="r48" ng-src="{{r48}}"></td>
+              <td> <img class="vuled" id="r42" ng-src="{{r42}}"></td>
+              <td> <img class="vuled" id="r36" ng-src="{{r36}}"></td>
+              <td> <img class="vuled" id="r30" ng-src="{{r30}}"></td>
+              <td> <img class="vuled" id="r24" ng-src="{{r24}}"></td>
+              <td> <img class="vuled" id="r18" ng-src="{{r18}}"></td>
+              <td> <img class="vuled" id="r15" ng-src="{{r15}}"></td>
+              <td> <img class="vuled" id="r12" ng-src="{{r12}}">  </td>
+              <td> <img class="vuled" id="r9" ng-src="{{r9}}"></td>
+              <td> <img class="vuled" id="r6" ng-src="{{r6}}"></td>
+              <td> <img class="vuled" id="r5" ng-src="{{r5}}"></td>
+              <td> <img class="vuled" id="r4" ng-src="{{r4}}"></td>
+              <td> <img class="vuled" id="r3" ng-src="{{r3}}"></td>
+              <td> <img class="vuled" id="r2" ng-src="{{r2}}"></td>
+              <td> <img class="vuled" id="r1" ng-src="{{r1}}"></td>
+              <td> <img class="vuled" id="r0" ng-src="{{r0}}"></td>
+              <td>   <div class="peak" id="maxR" ng-bind="maxR"></div></td>
+            </tr>
+          </table>
+        </center>
+      </div>
+    </div>
+    <div class="row">
+      <form name="metadataform" class="form-inline" role="form">
+        <div class="row meta-gutter">
+          <div class="col-xs-2">
+            <input type="text" class="form-control" placeholder="date"
+            bs-datepicker data-autoclose="true"
+            ng-model="showDate">
+          </div>
+          <div class="col-sm-4">
+            <input type="text" class="form-control" placeholder="band">
+          </div>
+          <div class="col-sm-5">
+            <input type="text" class="form-control" placeholder="venue">
+          </div>
+          <div class="col-sm-1">
+            <input type="text" class="form-control" placeholder="set">
+          </div>
+        </div>
+      </form>
     </div>
   </div>
-  <div class="row">
-    <form name="metadataform" class="form-inline" role="form">
-      <div class="row meta-gutter">
-        <div class="col-xs-2">
-          <input type="text" class="form-control" placeholder="date"
-          bs-datepicker data-autoclose="true"
-          ng-model="showDate">
-        </div>
-        <div class="col-sm-4">
-          <input type="text" class="form-control" placeholder="band">
-        </div>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" placeholder="venue">
-        </div>
-        <div class="col-sm-1">
-          <input type="text" class="form-control" placeholder="set">
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
 </body>
 </html>
