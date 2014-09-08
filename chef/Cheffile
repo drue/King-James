@@ -1,4 +1,7 @@
 #!/usr/bin/env ruby
+
+#### JAMES cheffile
+
 #^syntax detection
 
 site 'http://community.opscode.com/api/v1'
