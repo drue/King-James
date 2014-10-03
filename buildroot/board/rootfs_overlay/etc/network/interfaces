@@ -1,0 +1,31 @@
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto eth0
+iface eth0 inet dhcp
+#pre-up iptables-restore < /etc/iptables.rules
+#post-down iptables-save > /etc/iptables.rules
+
+# wireless
+#allow-hotplug wlan0
+auto wlan0
+iface wlan0 inet static
+      address 10.0.0.1
+      netmask 255.255.255.0
+#wireless-mode master
+#wireless-essid deputy
+
+
+# auto br0
+# iface br0 inet static
+#     address 10.1.1.1
+#     network 10.1.1.0
+#     netmask 255.255.255.0
+#     broadcast 10.1.1.255
+#     bridge-ports eth1 wlan1
+
+# Example to keep MAC address between reboots
+#hwaddress ether DE:AD:BE:EF:CA:FE
+
+

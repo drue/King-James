@@ -1,0 +1,47 @@
+From a2577d6ebf253854d3f0e93b5e633cec3ca277eb Mon Sep 17 00:00:00 2001
+From: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+Date: Tue, 7 Jan 2014 09:24:20 +0000
+Subject: [PATCH 07/14] ARM: bcm2708: Limit the boot time interrupt allocation
+
+Limit the boot time interrupt allocation to RPi related
+interrupts only
+
+Signed-off-by: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+---
+ arch/arm/mach-bcm2708/armctrl.c           |    2 +-
+ arch/arm/mach-bcm2708/include/mach/irqs.h |    6 +++++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/mach-bcm2708/armctrl.c b/arch/arm/mach-bcm2708/armctrl.c
+index 274aa30..ddf2c19 100644
+--- a/arch/arm/mach-bcm2708/armctrl.c
++++ b/arch/arm/mach-bcm2708/armctrl.c
+@@ -202,7 +202,7 @@ int __init armctrl_init(void __iomem * base, unsigned int irq_start,
+ {
+ 	unsigned int irq;
+ 
+-	for (irq = 0; irq < NR_IRQS; irq++) {
++	for (irq = 0; irq < CORE_IRQS; irq++) {
+ 		unsigned int data = irq;
+ 		if (irq >= INTERRUPT_JPEG && irq <= INTERRUPT_ARASANSDIO)
+ 			data = remap_irqs[irq - INTERRUPT_JPEG];
+diff --git a/arch/arm/mach-bcm2708/include/mach/irqs.h b/arch/arm/mach-bcm2708/include/mach/irqs.h
+index 9aaedf1..b64da11 100644
+--- a/arch/arm/mach-bcm2708/include/mach/irqs.h
++++ b/arch/arm/mach-bcm2708/include/mach/irqs.h
+@@ -193,7 +193,11 @@
+ #define FIQ_IRQS              (64 + 21)
+ #define GPIO_IRQS	      (32*5)
+ 
+-#define NR_IRQS		      HARD_IRQS+FIQ_IRQS+GPIO_IRQS
++#define CORE_IRQS            HARD_IRQS+FIQ_IRQS+GPIO_IRQS
+ 
++#define BOARD_AUDIO_START (GPIO_IRQ_START + GPIO_IRQS)
++#define BOARD_AUDIO_IRQS   130
++
++#define NR_IRQS                      CORE_IRQS+BOARD_AUDIO_IRQS
+ 
+ #endif /* _BCM2708_IRQS_H_ */
+-- 
+1.7.9.5
+

@@ -1,0 +1,3 @@
+RUN_DAEMON="yes"
+DAEMON_CONF="/etc/hostapd/hostapd.conf"
+DAEMON_OPTS="-dd"

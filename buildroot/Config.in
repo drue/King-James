@@ -1,0 +1,4 @@
+source "$BR2_EXTERNAL/package/python-james/Config.in"
+source "$BR2_EXTERNAL/package/python-sockjs-tornado/Config.in"
+source "$BR2_EXTERNAL/package/rtl-hostapd/Config.in"
+source "$BR2_EXTERNAL/package/isc-dhcp/Config.in"

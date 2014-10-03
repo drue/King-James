@@ -1,0 +1,31 @@
+From e9ed3a2f6f236f7744304524473ee4a094e71bd0 Mon Sep 17 00:00:00 2001
+From: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+Date: Tue, 29 Oct 2013 12:18:12 +0000
+Subject: [PATCH 02/14] ASOC: WM5102: Add dapm routes for CPVDD
+
+INx receive power from MICVDD which is
+supplied via CPVDD so add MICVDD-CPVDD
+dapm routes
+
+Change-Id: I5f073986a8fdd2ae06eb616b9125e2039f9a698b
+Signed-off-by: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+---
+ sound/soc/codecs/wm5102.c |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/sound/soc/codecs/wm5102.c b/sound/soc/codecs/wm5102.c
+index 100fdad..cdd0db7 100644
+--- a/sound/soc/codecs/wm5102.c
++++ b/sound/soc/codecs/wm5102.c
+@@ -1362,6 +1362,8 @@ static const struct snd_soc_dapm_route wm5102_dapm_routes[] = {
+ 	{ "IN3L PGA", NULL, "IN3L" },
+ 	{ "IN3R PGA", NULL, "IN3R" },
+ 
++	{ "MICVDD", NULL, "CPVDD" },
++
+ 	{ "ASRC1L", NULL, "ASRC1L Input" },
+ 	{ "ASRC1R", NULL, "ASRC1R Input" },
+ 	{ "ASRC2L", NULL, "ASRC2L Input" },
+-- 
+1.7.9.5
+

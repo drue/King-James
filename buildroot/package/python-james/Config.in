@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PYTHON_JAMES
+	bool "python-james"
+	depends on BR2_PACKAGE_PYTHON
+	help
+    James is the recording core and web interface

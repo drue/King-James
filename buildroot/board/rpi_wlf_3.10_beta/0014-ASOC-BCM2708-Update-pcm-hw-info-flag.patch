@@ -1,0 +1,33 @@
+From 115c4611134b41a6dd4a3fb84136e4b6edbf5fca Mon Sep 17 00:00:00 2001
+From: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+Date: Wed, 8 Jan 2014 14:58:45 +0000
+Subject: [PATCH 14/14] ASOC: BCM2708: Update pcm hw info flag
+
+Signed-off-by: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+---
+ sound/soc/bcm/bcm2708-i2s.c |    9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/sound/soc/bcm/bcm2708-i2s.c b/sound/soc/bcm/bcm2708-i2s.c
+index a179216..a7e6e91 100644
+--- a/sound/soc/bcm/bcm2708-i2s.c
++++ b/sound/soc/bcm/bcm2708-i2s.c
+@@ -816,8 +816,13 @@ static void bcm2708_i2s_setup_gpio(void)
+ }
+ 
+ static const struct snd_pcm_hardware bcm2708_pcm_hardware = {
+-	.info			= SNDRV_PCM_INFO_INTERLEAVED |
+-				  SNDRV_PCM_INFO_JOINT_DUPLEX,
++	.info			= SNDRV_PCM_INFO_MMAP |
++				  SNDRV_PCM_INFO_MMAP_VALID |
++				  SNDRV_PCM_INFO_INTERLEAVED |
++				  SNDRV_PCM_INFO_PAUSE |
++				  SNDRV_PCM_INFO_RESUME |
++				  SNDRV_PCM_INFO_JOINT_DUPLEX |
++				  SNDRV_PCM_INFO_NO_PERIOD_WAKEUP,
+ 	.formats		= SNDRV_PCM_FMTBIT_S16_LE |
+ 				  SNDRV_PCM_FMTBIT_S24_LE |
+ 				  SNDRV_PCM_FMTBIT_S32_LE,
+-- 
+1.7.9.5
+

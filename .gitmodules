@@ -1,0 +1,4 @@
+[submodule "buildroot/rpi-buildroot"]
+	path = buildroot/rpi-buildroot
+	url = git://github.com/gamaral/rpi-buildroot.git
+	branch = rpi

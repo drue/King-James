@@ -1,0 +1,10 @@
+[Unit]
+Description=james recording daemon
+After=alsa.service network.service
+
+[Service]
+ExecStart=/usr/bin/james
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

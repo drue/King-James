@@ -1,0 +1,10 @@
+[Unit]
+Description=micro dhcp server daemon
+After=james.service
+
+[Service]
+ExecStart=/usr/sbin/udhcpd -f /etc/udhcpd.conf
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

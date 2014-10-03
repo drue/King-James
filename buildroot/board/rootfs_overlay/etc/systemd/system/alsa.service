@@ -1,0 +1,10 @@
+[Unit]
+Description=alsa mixer config
+After=syslog.target
+
+[Service]
+ExecStart=/bin/sh /etc/james/current_input.sh
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=host access point daemon
+After=james.service
+
+[Service]
+ExecStart=/usr/sbin/hostapd /etc/hostapd/hostapd.conf
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

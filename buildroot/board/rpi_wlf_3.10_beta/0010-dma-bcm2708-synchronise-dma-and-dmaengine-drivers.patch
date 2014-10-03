@@ -1,0 +1,91 @@
+From 788a755684af384ff80bff78c0f4bd2cdc75e2c5 Mon Sep 17 00:00:00 2001
+From: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+Date: Thu, 9 Jan 2014 12:41:15 +0000
+Subject: [PATCH 10/14] dma: bcm2708: synchronise dma and dmaengine drivers
+
+dmaengine driver is dependent on dma driver, before it
+allocates dma channels, it must wait for dma driver
+probe to complete. Also the soc dma engine must wait for
+dma device and channel to be allocated by dma engine
+driver.
+
+Signed-off-by: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+---
+ drivers/dma/bcm2708-dmaengine.c       |    8 ++++++--
+ drivers/dma/dmaengine.c               |    3 +++
+ sound/soc/soc-generic-dmaengine-pcm.c |   14 ++++++++++----
+ 3 files changed, 19 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/dma/bcm2708-dmaengine.c b/drivers/dma/bcm2708-dmaengine.c
+index 3ba3cec..e84c279 100644
+--- a/drivers/dma/bcm2708-dmaengine.c
++++ b/drivers/dma/bcm2708-dmaengine.c
+@@ -510,8 +510,12 @@ static int bcm2708_dma_probe(struct platform_device *pdev)
+ 			&chan_base,
+ 			&irq);
+ 
+-		if (chan_id < 0) 
+-			break;
++		if (chan_id < 0) {
++			if (i == 0)
++				return -EPROBE_DEFER;
++			else
++				break;
++		}
+ 
+ 		rc = bcm2708_dma_chan_init(od, chan_base, chan_id, irq);
+ 		if (rc) {
+diff --git a/drivers/dma/dmaengine.c b/drivers/dma/dmaengine.c
+index 93f7992..b5906bc 100644
+--- a/drivers/dma/dmaengine.c
++++ b/drivers/dma/dmaengine.c
+@@ -516,6 +516,9 @@ struct dma_chan *__dma_request_channel(const dma_cap_mask_t *mask,
+ 	struct dma_chan *chan = NULL;
+ 	int err;
+ 
++	if (list_empty(&dma_device_list))
++		return ERR_PTR(-EPROBE_DEFER);
++
+ 	/* Find a channel */
+ 	mutex_lock(&dma_list_mutex);
+ 	list_for_each_entry_safe(device, _d, &dma_device_list, global_node) {
+diff --git a/sound/soc/soc-generic-dmaengine-pcm.c b/sound/soc/soc-generic-dmaengine-pcm.c
+index e29ec3c..a54ff16 100644
+--- a/sound/soc/soc-generic-dmaengine-pcm.c
++++ b/sound/soc/soc-generic-dmaengine-pcm.c
+@@ -144,6 +144,7 @@ static int dmaengine_pcm_new(struct snd_soc_pcm_runtime *rtd)
+ 	struct snd_pcm_substream *substream;
+ 	unsigned int i;
+ 	int ret;
++	struct dma_chan *chan;
+ 
+ 	for (i = SNDRV_PCM_STREAM_PLAYBACK; i <= SNDRV_PCM_STREAM_CAPTURE; i++) {
+ 		substream = rtd->pcm->streams[i].substream;
+@@ -151,15 +152,20 @@ static int dmaengine_pcm_new(struct snd_soc_pcm_runtime *rtd)
+ 			continue;
+ 
+ 		if (!pcm->chan[i] && (pcm->flags & SND_DMAENGINE_PCM_FLAG_COMPAT)) {
+-			pcm->chan[i] = dmaengine_pcm_compat_request_channel(rtd,
++			chan = dmaengine_pcm_compat_request_channel(rtd,
+ 				substream);
+ 		}
+ 
+-		if (!pcm->chan[i]) {
++		if (IS_ERR(chan)) {
++			if (PTR_ERR(chan) == -EPROBE_DEFER) {
++				ret =  -EPROBE_DEFER;
++				goto err_free;
++			}
+ 			dev_err(rtd->platform->dev,
+ 				"Missing dma channel for stream: %d\n", i);
+-			ret = -EINVAL;
+-			goto err_free;
++			pcm->chan[i] = NULL;
++		} else {
++				pcm->chan[i] = chan;
+ 		}
+ 
+ 		ret = snd_pcm_lib_preallocate_pages(substream,
+-- 
+1.7.9.5
+

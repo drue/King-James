@@ -1,0 +1,67 @@
+From a69f7ad81ca4aa9f538990f58ad95d7032e1b9af Mon Sep 17 00:00:00 2001
+From: Dimitris Papastamos <dp@opensource.wolfsonmicro.com>
+Date: Tue, 11 Feb 2014 17:26:25 +0000
+Subject: [PATCH 2/2] ASoC: arizona: Disable AIF TX/RX before configuring it
+
+If we don't disable the AIF TX/RX then we may fall into a
+situation where the new AIF settings are ignored by the device.
+
+For example, this problem manifests when switching between
+different sample rates.
+
+Signed-off-by: Dimitris Papastamos <dp@opensource.wolfsonmicro.com>
+---
+ sound/soc/codecs/arizona.c |   21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/sound/soc/codecs/arizona.c b/sound/soc/codecs/arizona.c
+index ba575a9..e58f50e 100644
+--- a/sound/soc/codecs/arizona.c
++++ b/sound/soc/codecs/arizona.c
+@@ -1025,6 +1025,8 @@ static int arizona_hw_params(struct snd_pcm_substream *substream,
+ 	int chan_limit = arizona->pdata.max_channels_clocked[dai->id - 1];
+ 	int bclk, lrclk, wl, frame, bclk_target;
+ 	unsigned int base_rate;
++	unsigned int aif_tx_state;
++	unsigned int aif_rx_state;
+ 
+ 	switch (dai_priv->clk) {
+ 	case ARIZONA_CLK_SYSCLK:
+@@ -1085,9 +1087,18 @@ static int arizona_hw_params(struct snd_pcm_substream *substream,
+ 	wl = snd_pcm_format_width(params_format(params));
+ 	frame = wl << ARIZONA_AIF1TX_WL_SHIFT | wl;
+ 
++	/* Save AIF TX/RX state */
++	aif_tx_state = snd_soc_read(dai->codec, base + ARIZONA_AIF_TX_ENABLES);
++	aif_rx_state = snd_soc_read(dai->codec, base + ARIZONA_AIF_RX_ENABLES);
++	/* Disable AIF TX/RX before configuring it */
++	snd_soc_update_bits(dai->codec, base + ARIZONA_AIF_TX_ENABLES,
++			    0xff, 0x0);
++	snd_soc_update_bits(dai->codec, base + ARIZONA_AIF_RX_ENABLES,
++			    0xff, 0x0);
++
+ 	ret = arizona_hw_params_rate(substream, params, dai);
+ 	if (ret != 0)
+-		return ret;
++		goto restore_aif;
+ 
+ 	snd_soc_update_bits(codec, base + ARIZONA_AIF_BCLK_CTRL,
+ 			    ARIZONA_AIF1_BCLK_FREQ_MASK, bclk);
+@@ -1102,7 +1113,13 @@ static int arizona_hw_params(struct snd_pcm_substream *substream,
+ 			    ARIZONA_AIF1RX_WL_MASK |
+ 			    ARIZONA_AIF1RX_SLOT_LEN_MASK, frame);
+ 
+-	return 0;
++restore_aif:
++	/* Restore AIF TX/RX state */
++	snd_soc_update_bits(dai->codec, base + ARIZONA_AIF_TX_ENABLES,
++			    0xff, aif_tx_state);
++	snd_soc_update_bits(dai->codec, base + ARIZONA_AIF_RX_ENABLES,
++			    0xff, aif_rx_state);
++	return ret;
+ }
+ 
+ static const char *arizona_dai_clk_str(int clk_id)
+-- 
+1.7.10.4
+

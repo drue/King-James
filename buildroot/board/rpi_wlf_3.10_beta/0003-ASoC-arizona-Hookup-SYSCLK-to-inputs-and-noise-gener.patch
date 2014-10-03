@@ -1,0 +1,76 @@
+From 375148e4890b8d385749c2b677306cd6a9289967 Mon Sep 17 00:00:00 2001
+From: Charles Keepax <ckeepax@opensource.wolfsonmicro.com>
+Date: Wed, 5 Jun 2013 14:51:31 +0100
+Subject: [PATCH 03/14] ASoC: arizona: Hookup SYSCLK to inputs and noise
+ generators
+
+All sources and sinks should enable SYSCLK.
+
+Signed-off-by: Charles Keepax <ckeepax@opensource.wolfsonmicro.com>
+Signed-off-by: Mark Brown <broonie@linaro.org>
+(cherry picked from commit 6dc6a3f81ee66b50acee5f1aa1de2f7d2d4e55fa)
+
+Change-Id: Ie6b41a55b531f8fe4fd8ce3639acaa9acd72aff5
+Signed-off-by: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+---
+ sound/soc/codecs/wm5102.c |   11 +++++++++++
+ sound/soc/codecs/wm5110.c |   13 +++++++++++++
+ 2 files changed, 24 insertions(+)
+
+diff --git a/sound/soc/codecs/wm5102.c b/sound/soc/codecs/wm5102.c
+index cdd0db7..0c33891 100644
+--- a/sound/soc/codecs/wm5102.c
++++ b/sound/soc/codecs/wm5102.c
+@@ -1304,10 +1304,21 @@ static const struct snd_soc_dapm_route wm5102_dapm_routes[] = {
+ 	{ "OUT5L", NULL, "SYSCLK" },
+ 	{ "OUT5R", NULL, "SYSCLK" },
+ 
++	{ "IN1L", NULL, "SYSCLK" },
++	{ "IN1R", NULL, "SYSCLK" },
++	{ "IN2L", NULL, "SYSCLK" },
++	{ "IN2R", NULL, "SYSCLK" },
++	{ "IN3L", NULL, "SYSCLK" },
++	{ "IN3R", NULL, "SYSCLK" },
++
+ 	{ "MICBIAS1", NULL, "MICVDD" },
+ 	{ "MICBIAS2", NULL, "MICVDD" },
+ 	{ "MICBIAS3", NULL, "MICVDD" },
+ 
++	{ "Noise Generator", NULL, "SYSCLK" },
++	{ "Tone Generator 1", NULL, "SYSCLK" },
++	{ "Tone Generator 2", NULL, "SYSCLK" },
++
+ 	{ "Noise Generator", NULL, "NOISE" },
+ 	{ "Tone Generator 1", NULL, "TONE" },
+ 	{ "Tone Generator 2", NULL, "TONE" },
+diff --git a/sound/soc/codecs/wm5110.c b/sound/soc/codecs/wm5110.c
+index cd6ed88..6138d33 100644
+--- a/sound/soc/codecs/wm5110.c
++++ b/sound/soc/codecs/wm5110.c
+@@ -777,10 +777,23 @@ static const struct snd_soc_dapm_route wm5110_dapm_routes[] = {
+ 	{ "OUT6L", NULL, "SYSCLK" },
+ 	{ "OUT6R", NULL, "SYSCLK" },
+ 
++	{ "IN1L", NULL, "SYSCLK" },
++	{ "IN1R", NULL, "SYSCLK" },
++	{ "IN2L", NULL, "SYSCLK" },
++	{ "IN2R", NULL, "SYSCLK" },
++	{ "IN3L", NULL, "SYSCLK" },
++	{ "IN3R", NULL, "SYSCLK" },
++	{ "IN4L", NULL, "SYSCLK" },
++	{ "IN4R", NULL, "SYSCLK" },
++
+ 	{ "MICBIAS1", NULL, "MICVDD" },
+ 	{ "MICBIAS2", NULL, "MICVDD" },
+ 	{ "MICBIAS3", NULL, "MICVDD" },
+ 
++	{ "Noise Generator", NULL, "SYSCLK" },
++	{ "Tone Generator 1", NULL, "SYSCLK" },
++	{ "Tone Generator 2", NULL, "SYSCLK" },
++
+ 	{ "Noise Generator", NULL, "NOISE" },
+ 	{ "Tone Generator 1", NULL, "TONE" },
+ 	{ "Tone Generator 2", NULL, "TONE" },
+-- 
+1.7.9.5
+

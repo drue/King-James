@@ -1,0 +1,110 @@
+From 5a98f89db9e11d74be19006dafa8884ee8c4de92 Mon Sep 17 00:00:00 2001
+From: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+Date: Fri, 3 Jan 2014 15:02:33 +0000
+Subject: [PATCH 06/14] ASoC: arizona: Check clocking during hw_params rather
+ than startup
+
+It is a fairly common usage to configure SYSCLK as part of the hw_params
+callback in the machine driver. The current driver applies PCM
+constraints based on the value of SYSCLK during the startup callback
+however because many systems will have not configured SYSCLK yet this
+will often use the SYSCLK value that was used for the last stream.
+
+The patch checks the clocking constraints as part of the hw_params
+callback, which will be after any clocking changes have been made by
+the machine driver.
+
+Signed-off-by: nikesh <Nikesh.Oswal@wolfsonmicro.com>
+---
+ sound/soc/codecs/arizona.c |   55 +++++++++++++++++---------------------------
+ 1 file changed, 21 insertions(+), 34 deletions(-)
+
+diff --git a/sound/soc/codecs/arizona.c b/sound/soc/codecs/arizona.c
+index 663a2a7..f5e9285 100644
+--- a/sound/soc/codecs/arizona.c
++++ b/sound/soc/codecs/arizona.c
+@@ -963,39 +963,6 @@ static int arizona_sr_vals[] = {
+ 	512000,
+ };
+ 
+-static int arizona_startup(struct snd_pcm_substream *substream,
+-			   struct snd_soc_dai *dai)
+-{
+-	struct snd_soc_codec *codec = dai->codec;
+-	struct arizona_priv *priv = snd_soc_codec_get_drvdata(codec);
+-	struct arizona_dai_priv *dai_priv = &priv->dai[dai->id - 1];
+-	const struct snd_pcm_hw_constraint_list *constraint;
+-	unsigned int base_rate;
+-
+-	switch (dai_priv->clk) {
+-	case ARIZONA_CLK_SYSCLK:
+-		base_rate = priv->sysclk;
+-		break;
+-	case ARIZONA_CLK_ASYNCCLK:
+-		base_rate = priv->asyncclk;
+-		break;
+-	default:
+-		return 0;
+-	}
+-
+-	if (base_rate == 0)
+-		return 0;
+-
+-	if (base_rate % 8000)
+-		constraint = &arizona_44k1_constraint;
+-	else
+-		constraint = &arizona_48k_constraint;
+-
+-	return snd_pcm_hw_constraint_list(substream->runtime, 0,
+-					  SNDRV_PCM_HW_PARAM_RATE,
+-					  constraint);
+-}
+-
+ static int arizona_hw_params_rate(struct snd_pcm_substream *substream,
+ 				  struct snd_pcm_hw_params *params,
+ 				  struct snd_soc_dai *dai)
+@@ -1050,12 +1017,33 @@ static int arizona_hw_params(struct snd_pcm_substream *substream,
+ {
+ 	struct snd_soc_codec *codec = dai->codec;
+ 	struct arizona_priv *priv = snd_soc_codec_get_drvdata(codec);
++	struct arizona_dai_priv *dai_priv = &priv->dai[dai->id - 1];
+ 	struct arizona *arizona = priv->arizona;
+ 	int base = dai->driver->base;
+ 	const int *rates;
+ 	int i, ret, val;
+ 	int chan_limit = arizona->pdata.max_channels_clocked[dai->id - 1];
+ 	int bclk, lrclk, wl, frame, bclk_target;
++	unsigned int base_rate;
++
++	switch (dai_priv->clk) {
++	case ARIZONA_CLK_SYSCLK:
++		base_rate = priv->sysclk;
++		break;
++	case ARIZONA_CLK_ASYNCCLK:
++		base_rate = priv->asyncclk;
++		break;
++	default:
++		arizona_aif_err(dai, "Unknown clock: %d\n", dai_priv->clk);
++		return -EINVAL;
++	}
++
++	if (!!(base_rate % 8000) != !!(params_rate(params) % 8000)) {
++		arizona_aif_err(dai,
++				"Rate %dHz not supported off %dHz clock\n",
++				params_rate(params), base_rate);
++		return -EINVAL;
++	}
+ 
+ 	if (params_rate(params) % 8000)
+ 		rates = &arizona_44k1_bclk_rates[0];
+@@ -1190,7 +1178,6 @@ static int arizona_set_tristate(struct snd_soc_dai *dai, int tristate)
+ }
+ 
+ const struct snd_soc_dai_ops arizona_dai_ops = {
+-	.startup = arizona_startup,
+ 	.set_fmt = arizona_set_fmt,
+ 	.hw_params = arizona_hw_params,
+ 	.set_sysclk = arizona_dai_set_sysclk,
+-- 
+1.7.9.5
+
