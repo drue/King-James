@@ -1,15 +1,17 @@
 King James
 ==========
 
-This software is for creating audio recorder appliances on Linux.  The
-main use case is concert recording with a small SBC such as a
-RaspberryPi or BeagleBone.  It sports an HTML/JS interface for
-wireless remote control with a phone or any other web browser.
+This software is for creating audio recorder appliances on Linux.  It
+sports an HTML/JS interface for wireless remote control with a phone
+or any other web browser.  The current target is a Raspberry Pi fitted
+with the Wolfson audio card. 
 
 The core consists of a Python Tornado server with a C++ module that
-interfaces with ALSA and writes the FLAC files.  Socket.IO, with
+interfaces with ALSA and writes the FLAC files.  The recording core
+is written to ensure dropout free performance.  Socket.IO, with
 TornadIO2, is used for realtime communication with the controlling
-browser.  Components are tied together with ZeroMQ.
+browser.  The core sends levels and status back up to Tornado with
+ZeroMQ over Unix sockets.
 
 Features
 --------
@@ -25,21 +27,19 @@ Features
 History
 -------
 
-This code is based on a project I started in 2001.  In 2012 the code is
-being overhauled in a major way to build a new device.
+This code is based on a project I started in 2001.  In 2012 the code
+ was overhauled in a major way to build a new device.
 
 The original device was a PC-104 SBC with a 266mHz Pentium-MMX, 4x20
-serial LCD + keypad, PC-104>PCI adapter, a SPDIF/AES sound card, hard
-drive, and power supply.  When the PDAUDIO-CF was released I switched
-to that.  I used that recorder for a few years but eventually I
-switched to a commercial handheld because it was much smaller and
-lighter.
-
-Now with SBCs like Raspberry-Pi and BeagleBone, I can make a recorder 
-that is better than commercial units for my purposes.
+serial LCD + keypad, PC-104>PCI adapter, a PDAUDIO-CF card, hard
+drive, and power supply.
 
 
 Status
+
+* 2013-10-2 - custom BuildRoot for creating a small and fast booting
+  image.  Boot time still needs optimization but it is much smaller and
+  faster than Raspbian.
 
 * 2014-04-20 - updating for Raspberry Pi with Wolfson card
 
