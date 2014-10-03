@@ -29,9 +29,10 @@ setup(name='james',
       author_email='drue@gigagig.org',
       packages=['web'],
       scripts=['bin/james'],
-      package_data={"web":["index.html", "static/*.png", "static/*.js", "static/*.css", "static/*.map"]},
+      package_data={"web":["index.html", "static/*.png", "static/*.js", "static/*.css", "static/*.map", "static/css/*.css"]},
       ext_modules=[Extension('transport', ['transport/Transport.cc', 'transport/spool.cc', 'transport/meter.cc', 'transport/tportmodule.cc'],
-                             libraries=['FLAC','asound', 'zmq', 'jack', 'boost_thread'],
+                             depends=['transport/Transport.h', 'transport/spool.h', 'transport/meter.h', 'transport/const.h'],
+                             libraries=['FLAC','asound', 'zmq', 'jack', 'boost_thread', 'boost_system'],
                              define_macros=[('DEBUG', None), ('_LARGEFILE64_SOURCE', None)],
                              # extra_compile_args=["-O0"]
           )])
