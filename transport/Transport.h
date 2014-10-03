@@ -5,7 +5,6 @@
 
 #include <jack/ringbuffer.h>
 
-#include "port.h"
 #include "spool.h"
 #include "meter.h"
 
