@@ -13,5 +13,5 @@ package "unzip"
 
 
 
-cookbook_file "/etc/ssh/sshd_config"
-sudo 
+#cookbook_file "/etc/ssh/sshd_config"
+
